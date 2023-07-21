@@ -33,7 +33,7 @@ class ArucoTarget(Node):
         "aruco_original" : cv2.aruco.DICT_ARUCO_ORIGINAL
     }
 
-    def __init__(self, tag_set="apriltag_36h10", target_width=0.20):
+    def __init__(self, tag_set="6x6_1000", target_width=0.20):
         super().__init__('aruco_target')
         self.get_logger().info(f'{self.get_name()} created')
 
@@ -99,7 +99,7 @@ class ArucoTarget(Node):
             return
 
         rvec, tvec, _objPoints = self._estimatePoseSingleMarkers(corners, self._target_width, self._cameraMatrix, self._distortion)
-        self.get_logger().info(f"We got back {rvec} {tvec}")
+        self.get_logger().info(f"We got back {rvec} {tvec} {len(_objPoints)})")
 #        rvec, tvec, _objPoints = cv2.aruco.estimatePoseSingleMarkers(corners, self._target_width, self._cameraMatrix, self._distortion)
         result = self._image.copy()
         for r,t in zip(rvec,tvec):
