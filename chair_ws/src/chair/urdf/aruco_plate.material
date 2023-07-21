@@ -1,0 +1,16 @@
+material aruco_plate
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture aruco_plate.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}
+
