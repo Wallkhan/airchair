@@ -12,6 +12,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/EStop.srv"
+  "srv/Engage.srv"
   DEPENDENCIES std_msgs
 )
 

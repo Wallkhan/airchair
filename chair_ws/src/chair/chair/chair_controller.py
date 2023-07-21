@@ -7,6 +7,7 @@ from std_msgs.msg import Bool
 from rclpy.qos import DurabilityPolicy
 from rclpy.qos import HistoryPolicy
 from rclpy.qos import QoSProfile
+from chair_interface.srv import EStop
 
 
 class ChairController(Node):
@@ -21,6 +22,7 @@ class ChairController(Node):
         self.declare_parameter('target_status', "/chair_a/target_status")    # chair's view of target status [True, False] (for leader is of person)
         self.declare_parameter('convoy_state', "/chair_a/convoy_state")      # static state of convoy [chair_a, chair_b, chair_c]
         self.declare_parameter('chair_state', "/chair_a/chair_state")        # static state of chair Json string
+        self.declare_parameter('estop', "/chair_a/estop")                    # push or reset estop button
  
         # latched
         chair_state = self.get_parameter('chair_state').get_parameter_value().string_value
@@ -41,6 +43,9 @@ class ChairController(Node):
         # timer callback to publish status information
         self._timer = self.create_timer(0.1, self._timer_callback)
 
+        estop_button = self.get_parameter('estop').get_parameter_value().string_value
+        self.create_service(EStop, estop_button, self._handle_estop)
+
 
     def _send_chair_state(self, text):
         self._chair_state_pub.publish(String(data=text))
@@ -49,9 +54,13 @@ class ChairController(Node):
         self._convoy_state_pub.publish(String(data=text))
 
     def _timer_callback(self):
-        self.get_logger().info(f'{self.get_name()} timer callback')
         self._chair_status_pub.publish(String(data=self._chair_status))
         self._target_status_pub.publish(Bool(data=self._target_status))
+
+    def _handle_estop(self, request, response):
+        self.get_logger().info(f'{self.get_name()} setting estop to {request}')
+        return response
+
 
 def main(args=None):
     rclpy.init(args=args)
