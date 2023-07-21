@@ -28,6 +28,7 @@ setup(
             'aruco_target = chair.aruco_target:main',
             'view_camera = chair.view_camera:main',
             'opencv_camera = chair.opencv_camera:main',
+            'chair_controller = chair.chair_controller:main',
         ],
     },
 )
