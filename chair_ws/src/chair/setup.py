@@ -31,6 +31,7 @@ setup(
             'chair_controller = chair.chair_controller:main',
             'openpose_node = chair.openpose_node:main',
             'openpose_view = chair.openpose_view:main',
+            'aruco_board_detect = chair.aruco_board_detect:main',
         ],
     },
 )
