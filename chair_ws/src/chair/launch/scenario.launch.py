@@ -9,39 +9,49 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import xacro
 
-def generate_launch_description():
-    scenario = DeclareLaunchArgument('robots', default_value = "chairs.json")
-    print(scenario)
-    try:
-        chairs = json.load(open(scenario, 'r'))
-    except Exception as e:
-        print(f"Unable to read/parse {scenario} {e}")
-        sys.exit(0)
-    print(chairs)
-    robots = []
-    for chair in chairs:
-        print(chair)
-        data = chairs[chair]
-        id = {'name': chair, 'target': data['target'],  'x': data['x'], 'y': data['y'], 'theta': data['theta'], 'show_video': data['show_video'], 'camera_tilt': data['camera_tilt']}
-        print(id)
-        robots.append(id)
-    print(robots)
-    urdf = os.path.join(get_package_share_directory('chair'), 'airchair.urdf.xacro')
 
+def generate_launch_description():
+    chair_file = 'chairs.json'
+    convoy_file = 'convoy.json'
+    for arg in sys.argv: # there must be a better way...
+        if arg.startswith('chairs:='):
+           print(arg.split('chairs:=', 1)[1])
+           chair_file = arg.split('chairs:=', 1)[1]
+        elif arg.startswith('convoy:='):
+           convoy_file = arg.split('convoy:=', 1)[1]
+        elif ':=' in arg:
+           print(f"Unknown argument in {arg}")
+           sys.exit(0)
+    print(f"Launching scenario from {chair_file} and {convoy_file}")
+    try:
+        chairs = json.load(open(chair_file, 'r'))
+    except Exception as e:
+        print(f"Unable to read/parse {chair_file} {e}")
+        sys.exit(0)
+    try:
+        convoy = json.load(open(convoy_file, 'r'))
+    except Exception as e:
+        print(f"Unable to read/parse {convoy_file} {e}")
+        sys.exit(0)
 
     nodelist = []
+
+    # fire up gazebo
     gazebo = os.path.join(get_package_share_directory('gazebo_ros'), 'launch', 'gazebo.launch.py')
-    print(gazebo)
     q = IncludeLaunchDescription(gazebo)
-    print(q)
     nodelist.append(q)
 
-    for robot in robots:
-        print(robot)
-        robot_desc = xacro.process_file(urdf, mappings={'name' : robot['name'], 'target' : robot['target'], 'show_video': robot['show_video'], 'camera_tilt': robot['camera_tilt']}).toxml()
+    # process each chair
+    urdf = os.path.join(get_package_share_directory('chair'), 'airchair.urdf.xacro')
+
+    for chair in chairs:
+        print(f"Processing {chair}")
+        data = chairs[chair]
+        print(f"Looking up {chair} resulted in {data}")
+        robot_desc = xacro.process_file(urdf, mappings={'name' : chair, 'target' : data['target'], 'show_video': data['show_video'], 'camera_tilt': data['camera_tilt']}).toxml()
         nodelist.append(
             Node(
-                namespace = robot['name'],
+                namespace = chair,
                 package='robot_state_publisher',
                 executable='robot_state_publisher',
                 name='robot_state_publisher',
@@ -51,12 +61,11 @@ def generate_launch_description():
             )
         nodelist.append(
             Node(
-                namespace = robot['name'],
+                namespace = chair,
                 package='gazebo_ros',
                 executable='spawn_entity.py',
                 name='urdf_spawner',
                 output='screen',
-                arguments=["-topic", "/" + robot['name'] + "/robot_description",  "-entity",  robot['name'], 
-                           "-x", robot['x'], '-y', robot['y'], '-Y', robot['theta']])
+                arguments=["-topic", "/" + chair + "/robot_description",  "-entity",  chair, "-x", data['x'], '-y', data['y'], '-Y', data['theta']])
             )
     return LaunchDescription(nodelist)

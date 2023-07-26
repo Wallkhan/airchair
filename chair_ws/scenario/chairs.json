@@ -1,6 +1,7 @@
 {
     "chair_a" : {"target": "apriltag_36h10_0", "x": "0", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
     "chair_b" : {"target": "apriltag_36h10_1", "x": "2", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
-    "chair_c" : {"target": "aruco_plate", "x": "4", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"}
+    "chair_c" : {"target": "aruco_plate", "x": "4", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_d" : {"target": "aruco_plate", "x": "6", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"}
 }
     

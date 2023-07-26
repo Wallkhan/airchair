@@ -1,0 +1,4 @@
+{
+    "chair_a" : {"target": "apriltag_36h10_0", "x": "0", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" }
+}
+    
