@@ -40,6 +40,7 @@ class ChairController(Node):
         self.declare_parameter('engage', "engage")                  # if not stopped and target status, engage the chair
  
         self.chair_name = self.get_parameter('chair_name').get_parameter_value().string_value
+        self.get_logger().info(f'{self.get_name()} chair_name {self.chair_name}')
 
         convoy_description = self.get_parameter('convoy_description').get_parameter_value().string_value
         self.convoy_description = self._load_json(convoy_description)
@@ -60,7 +61,7 @@ class ChairController(Node):
         self._chair_status_pub = self.create_publisher(String, f"/{self.chair_name}/{chair_status}", 10)
 
         target_status = self.get_parameter('target_status').get_parameter_value().string_value
-        self._target_status_pub = self.create_publisher(Bool, f"{self.chair_name}/{target_status}", 10)
+        self._target_status_pub = self.create_publisher(Bool, f"/{self.chair_name}/{target_status}", 10)
 
         # timer callback to publish status information
         self._timer = self.create_timer(0.1, self._timer_callback)
@@ -70,6 +71,10 @@ class ChairController(Node):
 
         engage_switch = self.get_parameter('engage').get_parameter_value().string_value
         self.create_service(Engage, f"/{self.chair_name}/{engage_switch}", self._handle_engage)
+
+        # subscribe to teleop messages so we can forward them if in manual mode
+        self.create_subscription(Twist, f"/{self.chair_name}/commanded_vel", self._teleop_subscriber, 10)
+        self._teleop_publisher = self.create_publisher(Twist, f"/{self.chair_name}/cmd_vel", 10)
 
     def _load_json(self, file):
         try:
@@ -94,6 +99,9 @@ class ChairController(Node):
         self.get_logger().info(f'{self.get_name()} setting estop to {request.estop}')
         if request.estop:
             self._chair_status = State.ESTOP
+            msg = Twist()
+            self.get_logger().info(f'{self.get_name()} setting estop twist to  {msg}')
+            self._teleop_publisher.publish(msg)
         else:
             self._chair_status = State.MANUAL
         return response
@@ -113,6 +121,10 @@ class ChairController(Node):
                 response.status = False
         return response
 
+    def _teleop_subscriber(self, msg):
+        self.get_logger().info(f'{self.get_name()} got a twist message {msg} in state {self._chair_status}')
+        if self._chair_status == State.MANUAL:
+            self._teleop_publisher.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)

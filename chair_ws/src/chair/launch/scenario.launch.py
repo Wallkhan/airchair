@@ -68,4 +68,13 @@ def generate_launch_description():
                 output='screen',
                 arguments=["-topic", "/" + chair + "/robot_description",  "-entity",  chair, "-x", data['x'], '-y', data['y'], '-Y', data['theta']])
             )
+        nodelist.append(
+            Node(
+                namespace = chair,
+                package = 'chair',
+                executable = 'chair_controller',
+                name = 'chair_controller',
+                output='screen',
+                parameters=[{'convoy_description': convoy_file, 'chair_descriptions': chair_file, 'chair_name' : chair}])
+            )
     return LaunchDescription(nodelist)
