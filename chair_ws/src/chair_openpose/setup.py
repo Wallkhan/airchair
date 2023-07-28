@@ -1,8 +1,8 @@
-from glob import glob
 import os
+from glob import glob
 from setuptools import setup
 
-package_name = 'chair'
+package_name = 'chair_openpose'
 
 setup(
     name=package_name,
@@ -13,23 +13,18 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*.py')),
-        (os.path.join('share', package_name), glob('urdf/*')),
-
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='jenkin',
-    maintainer_email='jenkin@yorku.ca',
+    maintainer='walleed',
+    maintainer_email='walleedk@my.yorku.ca',
     description='Air Chair',
     license='MIT License',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'aruco_target = chair.aruco_target:main',
-            'view_camera = chair.view_camera:main',
-            'opencv_camera = chair.opencv_camera:main',
-            'chair_controller = chair.chair_controller:main',
-            'aruco_board_detect = chair.aruco_board_detect:main',
+            'openpose_node = chair_openpose.openpose_node:main'
+            'openpose_view = chair_openpose.openpose_view:main'
         ],
     },
 )

@@ -9,7 +9,7 @@ import xacro
 
 def generate_launch_description():
     robots = [
-        {'name': 'leader_chair', 'target': 'aruco_board', 'x': '0', 'y': '0', 'theta': '0', 'show_video': 'false', 'camera_tilt': '0.25'},
+        {'name': 'leader_chair', 'target': 'board', 'x': '0', 'y': '0', 'theta': '0', 'show_video': 'false', 'camera_tilt': '0.25'},
         {'name': 'chair_a', 'target': 'apriltag_36h10_0', 'x': '-2', 'y': '0', 'theta': '0', 'show_video': 'false', 'camera_tilt': '0.25'}
         ]
     print(robots)

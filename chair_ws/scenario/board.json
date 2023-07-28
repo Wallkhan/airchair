@@ -1,0 +1,3 @@
+{
+    "board_1" : {"texture": "board_1.png", "rows": "3", "cols": "3", "markerLength": "0.45", "seperation": "0.01", "tags": "[9, 10, 11, 12, 13, 14, 15, 16, 17]" }    
+}

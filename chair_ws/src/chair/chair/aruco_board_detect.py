@@ -7,6 +7,8 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
+from geometry_msgs.msg import TransformStamped
+from scipy.spatial.transform import Rotation as R
 
 class ArucoTarget(Node):
     _DICTS = {
@@ -39,12 +41,17 @@ class ArucoTarget(Node):
 
         self.declare_parameter('image', "/chair_a/camera/image_raw")
         self.declare_parameter('info', "/chair_a/camera/camera_info")
+        # self.declare_parameter('target_frame', "/chair_a/target")
+        # self.declare_parameter('target_transform', "/chair_a/target_transform")
 
         self._image_topic = self.get_parameter('image').get_parameter_value().string_value
         self._info_topic = self.get_parameter('info').get_parameter_value().string_value
+        # self._target_topic = self.get_parameter('target_frame').get_parameter_value().string_value
+        # self._target_transform = self.get_parameter('target_transform').get_parameter_value().string_value
 
         self.create_subscription(Image, self._image_topic, self._image_callback, 1)
         self.create_subscription(CameraInfo, self._info_topic, self._info_callback, 1)
+        # self._transform_publisher = self.create_publisher(TransformStamped, self._target_topic, 1)
 
         self._bridge = CvBridge()
 
@@ -56,33 +63,21 @@ class ArucoTarget(Node):
             self._aruco_dict = cv2.aruco.getPredefinedDictionary(dict)
             self._aruco_param = cv2.aruco.DetectorParameters()
             self._aruco_detector = cv2.aruco.ArucoDetector(self._aruco_dict, self._aruco_param)
-            self._board = cv2.aruco.GridBoard((3, 3), 80, 10, cv2.aruco.getPredefinedDictionary(dict))
+            self._markerLength = .13   # Here, our measurement unit is meters.
+            self._markerSeparation = 0.01   # Here, our measurement unit is meters.
+            self._ids = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
+            self._board = cv2.aruco.GridBoard((3, 3), self._markerLength, self._markerSeparation, cv2.aruco.getPredefinedDictionary(dict), self._ids)
             self._target_width = target_width
             self._image = None
             self._cameraMatrix = None
-            self.get_logger().info(f"using dictionary {tag_set}, with board {self._board.getIds()}")
+            self._ids = self._board.getIds()
+            self.get_logger().info(f"using dictionary {tag_set}, with board {self._ids}")
 
     def _info_callback(self, msg):
         if msg.distortion_model != "plumb_bob":
             self.get_logger().error(f"We can only deal with plumb_bob distortion {msg.distortion_model}")
         self._distortion = np.reshape(msg.d, (1,5))
         self._cameraMatrix = np.reshape(msg.k, (3,3))
-
-    def _estimatePoseSingleMarkers(self, corners, marker_size, mtx, distortion):
-        marker_points = np.array([ [-marker_size/2, marker_size/2, 0],
-                                   [marker_size/2, marker_size/2, 0],
-                                   [marker_size/2, -marker_size/2, 0],
-                                   [-marker_size/2, -marker_size/2, 0]], dtype=np.float32)
-        trash =[]
-        rvecs = []
-        tvecs = []
-
-        for c in corners:
-            nada, R, t = cv2.solvePnP(marker_points, c, mtx, distortion, False, cv2.SOLVEPNP_IPPE_SQUARE)
-            rvecs.append(R)
-            tvecs.append(t)
-            trash.append(nada)
-        return rvecs, tvecs, trash
 
     def _image_callback(self, msg):
         self._image = self._bridge.imgmsg_to_cv2(msg, "bgr8") 
@@ -100,11 +95,36 @@ class ArucoTarget(Node):
 
         retval, rvec, tvec = cv2.solvePnP(obj_points, img_points, self._cameraMatrix, self._distortion)
         self.get_logger().info(f"We got back {rvec}, {tvec})")
+
+        # Publish TransformStamped
+        # self._create_transform(rvec, tvec)
+
         result = self._image.copy()
         if retval != 0:
             result = cv2.drawFrameAxes(result, self._cameraMatrix, self._distortion, rvec, tvec, self._target_width)
         cv2.imshow('window', result)
         cv2.waitKey(3)
+
+    # def _create_transform(self, rvec, tvec):
+    #     msg = TransformStamped()
+    #     msg.header.stamp = self.get_clock().now().to_msg()
+    #     msg.header.frame_id = "tracking_target"
+        
+    #     # Translation
+    #     msg.transform.translation.x = tvec[0].item()
+    #     msg.transform.translation.y = tvec[1].item()
+    #     msg.transform.translation.z = tvec[2].item()
+
+    #     rot = R.from_rotvec([rvec[0], rvec[1], rvec[2]])
+    #     quat = rot.as_quat()
+
+    #     msg.transform.rotation.x = quat[0]
+    #     msg.transform.rotation.y = quat[1]
+    #     msg.transform.rotation.z = quat[2]
+    #     msg.transform.rotation.w = quat[3]
+
+    #     self._transform_publisher.publish(msg)
+
 
 
 def main(args=None):

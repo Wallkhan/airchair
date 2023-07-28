@@ -52,3 +52,21 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+chair_ws/scenario/install/_local_setup_util_ps1.py
+chair_ws/scenario/install/_local_setup_util_sh.py
+chair_ws/scenario/install/.colcon_install_layout
+chair_ws/scenario/install/COLCON_IGNORE
+chair_ws/scenario/install/local_setup.bash
+chair_ws/scenario/install/local_setup.ps1
+chair_ws/scenario/install/local_setup.sh
+chair_ws/scenario/install/local_setup.zsh
+chair_ws/scenario/install/setup.bash
+chair_ws/scenario/install/setup.ps1
+chair_ws/scenario/install/setup.sh
+chair_ws/scenario/install/setup.zsh
+chair_ws/scenario/log/COLCON_IGNORE
+chair_ws/scenario/log/latest
+chair_ws/scenario/log/latest_build
+chair_ws/scenario/log/build_2023-07-28_10-30-49/events.log
+chair_ws/scenario/log/build_2023-07-28_10-30-49/logger_all.log
+.gitignore
