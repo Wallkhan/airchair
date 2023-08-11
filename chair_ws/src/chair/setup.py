@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*.py')),
         (os.path.join('share', package_name), glob('urdf/*')),
+        (os.path.join('share', package_name), glob('icons/*')),
 
     ],
     install_requires=['setuptools'],
@@ -30,7 +31,7 @@ setup(
             'opencv_camera = chair.opencv_camera:main',
             'chair_controller = chair.chair_controller:main',
             'aruco_board_detect = chair.aruco_board_detect:main',
-            'robot_control = chair.robot_control:main',
+            'chair_ui = chair.chair_ui:main',
         ],
     },
 )
