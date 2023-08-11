@@ -30,6 +30,7 @@ setup(
             'opencv_camera = chair.opencv_camera:main',
             'chair_controller = chair.chair_controller:main',
             'aruco_board_detect = chair.aruco_board_detect:main',
+            'robot_control = chair.robot_control:main',
         ],
     },
 )

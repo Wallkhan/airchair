@@ -97,7 +97,7 @@ class ArucoTarget(Node):
         self.get_logger().info(f"We got back {rvec}, {tvec})")
 
         # Publish TransformStamped
-        # self._create_transform(rvec, tvec)
+        self._create_transform(rvec, tvec)
 
         result = self._image.copy()
         if retval != 0:
@@ -105,26 +105,46 @@ class ArucoTarget(Node):
         cv2.imshow('window', result)
         cv2.waitKey(3)
 
-    # def _create_transform(self, rvec, tvec):
-    #     msg = TransformStamped()
-    #     msg.header.stamp = self.get_clock().now().to_msg()
-    #     msg.header.frame_id = "tracking_target"
-        
-    #     # Translation
-    #     msg.transform.translation.x = tvec[0].item()
-    #     msg.transform.translation.y = tvec[1].item()
-    #     msg.transform.translation.z = tvec[2].item()
+    def _create_transform(self, rvec, tvec):
+        # msg = TransformStamped()
+        # msg.header.stamp = self.get_clock().now().to_msg()
+        # msg.header.frame_id = "tracking_target"
 
-    #     rot = R.from_rotvec([rvec[0], rvec[1], rvec[2]])
-    #     quat = rot.as_quat()
+        # Given camera tilt angle in radians and camera connection parameters
+        camera_tilt = 0.25  # in radians
+        camera_origin = np.array([-0.4, 0.0, 1.1 + 0.02/2])
 
-    #     msg.transform.rotation.x = quat[0]
-    #     msg.transform.rotation.y = quat[1]
-    #     msg.transform.rotation.z = quat[2]
-    #     msg.transform.rotation.w = quat[3]
+        # Your translation and rotation vectors from solvePnP
+        translation_vec_cam_target = np.array([tvec[0], tvec[1], tvec[2]])
+        rotation_vec_cam_target = np.array([rvec[0], rvec[1], rvec[2]])
 
-    #     self._transform_publisher.publish(msg)
+        # Create the rotation matrix from rotation vector
+        rotation_matrix_cam_target, _ = cv2.Rodrigues(rotation_vec_cam_target)
 
+        # Create the transformation matrix for camera tilt
+        R_camera_tilt = np.array([[1, 0, 0],
+                                [0, np.cos(camera_tilt), -np.sin(camera_tilt)],
+                                [0, np.sin(camera_tilt), np.cos(camera_tilt)]])
+
+        # Create the transformation matrix for camera position
+        T_base_cam = np.identity(4)
+        T_base_cam[:3, :3] = R_camera_tilt
+        T_base_cam[:3, 3] = camera_origin
+
+        # Calculate the transformation matrix from camera to ArUco target
+        T_cam_target = np.concatenate((rotation_matrix_cam_target, translation_vec_cam_target), axis=1)
+        T_cam_target = np.vstack((T_cam_target, [0, 0, 0, 1]))
+
+        # Calculate the transformation matrix from ArUco target to base_link
+        T_base_target = np.dot(np.linalg.inv(T_base_cam), T_cam_target)
+
+        # Extract translation and rotation information
+        translation_base = T_base_target[:3, 3]
+        rotation_base = T_base_target[:3, :3]
+
+        # Print the results
+        print("Translation from base_link:", translation_base)
+        print("Rotation matrix in base_link:\n", rotation_base)
 
 
 def main(args=None):
