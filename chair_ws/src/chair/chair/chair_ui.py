@@ -34,16 +34,16 @@ class RobotControlGUI(QMainWindow):
         self._red_led = QPixmap(f"{home}/led-red-on.png").scaled(24, 24)
         self._black_led = QPixmap(f"{home}/led-off.jpg").scaled(24, 24)
 
-        self._node.declare_parameter('chair', "/chair_a")
-        self._chair = self._node.get_parameter('chair').get_parameter_value().string_value
+        self._node.declare_parameter('chair-name', "chair_a")
+        self._chair = self._node.get_parameter('chair-name').get_parameter_value().string_value
         self._node.get_logger().info(f'{self._node.get_name()} We are controlling chair {self._chair}')
 
-        self._publisher = self._node.create_publisher(Twist, f'{self._chair}/commanded_vel', 1)
-        self._node.create_subscription(String, f'{self._chair}/chair_status', self._chair_status_callback, 1)
+        self._publisher = self._node.create_publisher(Twist, f'/{self._chair}/commanded_vel', 1)
+        self._node.create_subscription(String, f'/{self._chair}/chair_status', self._chair_status_callback, 1)
 
-        client = self._node.create_client(EStop, f'{self._chair}/estop')
+        client = self._node.create_client(EStop, f'/{self._chair}/estop')
         while not client.wait_for_service(timeout_sec=1.0):
-            self._node.get_logger().info(f'{self._node.get_name()} Waiting for {self._chair}/estop')
+            self._node.get_logger().info(f'{self._node.get_name()} Waiting for /{self._chair}/estop')
         self._EStop_req = EStop.Request()
         self._EStop_cli = client
 
@@ -67,7 +67,7 @@ class RobotControlGUI(QMainWindow):
             self._node.get_logger().info(f'{self._node.get_name()} got a message {msg}')
 
     def init_ui(self):
-        self.setWindowTitle(f'Controller ({self._chair})')
+        self.setWindowTitle(f'{self._chair}')
         self.setGeometry(100, 100, 300, 300)
         self.setStyleSheet("background-color: white;")
         layout = QVBoxLayout()
