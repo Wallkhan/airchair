@@ -19,5 +19,5 @@ When the estop button is pressed the chair is in ESTOP mode. When you release it
 
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/chair_a/commanded_vel
 
-
+A simple user interface is associated with each chair. It will also get spawned for each chair. It has a set of buttons that work like a joystick.
 
