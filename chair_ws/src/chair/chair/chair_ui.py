@@ -53,7 +53,11 @@ class RobotControlGUI(QMainWindow):
         self._timer.start(100)
 
     def _timerCallback(self):
-        rclpy.spin_once(self._node)  # deal with subscription callbacks
+        try:
+            rclpy.spin_once(self._node)  # deal with subscription callbacks
+        except Exception as e:
+            self._node.get_logger().info(f'{self._node.get_name()} Exception {e}') 
+            sys.exit()
 
     def _chair_status_callback(self, msg):  # NB self is a QMainWindow
         self._estop_led.setPixmap(self._black_led)
