@@ -7,7 +7,7 @@
         It now has a target
         It now tilts the camera
         
-	Version 1.2.
+	Version 1.2a.
 	-->
 
 
@@ -176,12 +176,12 @@
   </gazebo>
 
   <!-- Left wheel -->
-  <link name="left_wheel_link">
+  <link name="left_wheel">
     <visual>
       <!-- origin rpy="0 1.5708 0" xyz="0 0 0" -->
       <geometry>
         <cylinder length="${robot_wheel_width}" radius="${robot_wheel_radius}" />
-        <!-- mesh filename="$(find chair)/rearwheel.obj" scale="0.001 0.001 0.001"-->>
+        <!-- mesh filename="$(find chair)/rearwheel.obj" scale="0.001 0.001 0.001"-->
       </geometry>
     </visual>
     <collision>
@@ -195,7 +195,7 @@
   <joint name="left_wheel_joint" type="continuous">
     <axis xyz="0 0 1" />
     <parent link="base_link" />
-    <child link="left_wheel_link" />
+    <child link="left_wheel" />
     <origin rpy="-1.5708 0 0" xyz="${robot_wheel_xoffset} ${robot_base_width/2+robot_wheel_width/2} ${robot_wheel_zoffset}" />
   </joint>
 
@@ -361,8 +361,8 @@
       <publish_odom>true</publish_odom>
       <publish_odom_tf>true</publish_odom_tf>
       <publish_wheel_tf>true</publish_wheel_tf>
-      <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_footprint</robot_base_frame>
+      <odometry_frame>${robot_name}/odom</odometry_frame>
+      <robot_base_frame>${robot_name}/base_footprint</robot_base_frame>
       <command_topic>cmd_vel</command_topic>
     </plugin>
   </gazebo>
