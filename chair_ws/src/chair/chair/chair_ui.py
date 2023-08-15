@@ -152,13 +152,13 @@ class RobotControlGUI(QMainWindow):
         self._node.get_logger().info(f'{self._node.get_name()} direction is {direction}')
         twist_msg = Twist()
         if direction == 'up':
-            twist_msg.linear.x = 1.0
+            twist_msg.linear.x = 0.5
         elif direction == 'down':
-            twist_msg.linear.x = -1.0
+            twist_msg.linear.x = -0.5
         elif direction == 'left':
-            twist_msg.angular.z = 1.0
+            twist_msg.angular.z = 0.5
         elif direction == 'right':
-            twist_msg.angular.z = -1.0
+            twist_msg.angular.z = -0.5
             
         self._publisher.publish(twist_msg)
 

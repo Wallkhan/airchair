@@ -3,12 +3,23 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
+from tf2_ros.buffer import Buffer
+from tf2_ros import TransformException
+from tf2_ros.transform_listener import TransformListener
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from geometry_msgs.msg import TransformStamped
 from scipy.spatial.transform import Rotation as R
+
+import tf2_ros
+import tf2_geometry_msgs
+from geometry_msgs.msg import Point, PointStamped
+
+
+
+
 
 class ArucoTarget(Node):
     _DICTS = {
@@ -34,6 +45,13 @@ class ArucoTarget(Node):
         "apriltag_36h11" : cv2.aruco.DICT_APRILTAG_36H11,
         "aruco_original" : cv2.aruco.DICT_ARUCO_ORIGINAL
     }
+# values from chair defintion
+    _TARGET_WIDTH = 0.45
+    _TARGET_LENGTH = 0.01
+    _TARGET_HEIGHT = 0.60
+    _TARGET_XOFFSET = -0.45
+    _TARGET_ZOFFSET = -0.3
+
 
     def __init__(self, tag_set="6x6_1000", target_width=0.20):
         super().__init__('aruco_target')
@@ -73,6 +91,9 @@ class ArucoTarget(Node):
             self._ids = self._board.getIds()
             self.get_logger().info(f"using dictionary {tag_set}, with board {self._ids}")
 
+        self._tf_buffer = Buffer()
+        TransformListener(self._tf_buffer, self)
+
     def _info_callback(self, msg):
         if msg.distortion_model != "plumb_bob":
             self.get_logger().error(f"We can only deal with plumb_bob distortion {msg.distortion_model}")
@@ -86,7 +107,7 @@ class ArucoTarget(Node):
         corners, ids, rejectedImgPoints = self._aruco_detector.detectMarkers(grey)
         frame = cv2.aruco.drawDetectedMarkers(self._image, corners, ids)
         if ids is None:
-            self.get_logger().info(f"No targets found!")
+#            self.get_logger().info(f"No targets found!")
             return
         if self._cameraMatrix is None:
             self.get_logger().info(f"We have not yet received a camera_info message")
@@ -94,12 +115,49 @@ class ArucoTarget(Node):
         obj_points, img_points = cv2.aruco.Board.matchImagePoints(self._board, detectedCorners=corners, detectedIds=ids)
 
         retval, rvec, tvec = cv2.solvePnP(obj_points, img_points, self._cameraMatrix, self._distortion)
-        self.get_logger().info(f"We got back {rvec}, {tvec})")
 
-        # Publish TransformStamped
-        self._create_transform(rvec, tvec)
+        x = ArucoTarget._TARGET_WIDTH/2
+        y = ArucoTarget._TARGET_HEIGHT
+        z = 0  # keep in target plane
+        axis = np.float32([[x-0.05, y-0.05, z-0.05], [x-0.05, y+0.05, z-0.05], [x+0.05, y+0.05, z-0.05], [x+0.05, y-0.05, z-0.05],
+            [x-0.05, y-0.05, z+0.05], [x-0.05, y+0.05, z+0.05], [x+0.05, y+0.05, z+0.05],[x+0.05, y-0.05, z+0.05]])
+        imgpts, jac = cv2.projectPoints(axis, rvec, tvec, self._cameraMatrix, self._distortion)
+        imgpts = np.int32(imgpts).reshape(-1, 2)
 
         result = self._image.copy()
+		
+        # Draw the bottom side (over the marker)
+        cv2.drawContours(result, [imgpts[:4]], -1, (255, 0, 0), 2)
+        cv2.drawContours(result, [imgpts[4:]], -1, (0, 255, 0), 2)
+        cv2.drawContours(result, [np.array( [imgpts[0], imgpts[1], imgpts[5], imgpts[4]])], -1, (0, 0, 255), 2)
+        cv2.drawContours(result, [np.array( [imgpts[2], imgpts[3], imgpts[7], imgpts[6]])], -1, (255, 0, 255), 2)
+        cv2.drawContours(result, [np.array( [imgpts[1], imgpts[2], imgpts[6], imgpts[5]])], -1, (255, 255, 0), 2)
+        cv2.drawContours(result, [np.array( [imgpts[0], imgpts[3], imgpts[7], imgpts[4]])], -1, (0, 255, 255), 2)
+		
+        r, _ = cv2.Rodrigues(rvec)
+
+        px = r[0][0] * x + r[0][1] * y + r[0][2] * z + tvec[0]
+        py = r[1][0] * x + r[1][1] * y + r[1][2] * z + tvec[1]
+        pz = r[2][0] * x + r[2][1] * y + r[2][2] * z + tvec[2]
+        self.get_logger().info(f"Pose is {tvec[0]}, {tvec[1]}, {tvec[2]}")
+        self.get_logger().info(f"In camera coordinate system {px}, {py}, {pz}")
+
+        try:
+            t = self._tf_buffer.lookup_transform("chair_a/base_link",  "chair_a/camera_link", rclpy.time.Time())
+            pointStamped = PointStamped()
+            pointStamped.header.stamp = self.get_clock().now().to_msg()
+            pointStamped.header.frame_id = "chair_a/camera_link"
+            pointStamped.point.x = float(px)
+            pointStamped.point.y = float(py)
+            pointStamped.point.z = float(pz)
+            point_wrt_target = tf2_geometry_msgs.do_transform_point(pointStamped, t)
+            self.get_logger().info(f"In base coordinate system {point_wrt_target}")
+        except TransformException as ex:
+            self.get_logger().info(f"Unable to find transformation {ex}")
+
+        # Publish TransformStamped
+#        self._create_transform(rvec, tvec)
+
         if retval != 0:
             result = cv2.drawFrameAxes(result, self._cameraMatrix, self._distortion, rvec, tvec, self._target_width)
         cv2.imshow('window', result)
@@ -143,8 +201,8 @@ class ArucoTarget(Node):
         rotation_base = T_base_target[:3, :3]
 
         # Print the results
-        print("Translation from base_link:", translation_base)
-        print("Rotation matrix in base_link:\n", rotation_base)
+        # print("Translation from base_link:", translation_base)
+        # print("Rotation matrix in base_link:\n", rotation_base)
 
 
 def main(args=None):
