@@ -1,0 +1,15 @@
+material board_2
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture board_2.png
+        filtering anistropic
+        max_anisotropy 16
+      }
+    }
+  }
+}

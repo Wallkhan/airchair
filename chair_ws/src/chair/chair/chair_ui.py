@@ -11,8 +11,8 @@ from chair_interface.srv import EStop
 from chair_interface.srv import Engage
 
 from ament_index_python.packages import get_package_share_directory
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLineEdit, QLabel, QGridLayout
-from PyQt5.QtGui import QPixmap, QPalette, QColor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLineEdit, QLabel, QGridLayout, QStyle
+from PyQt5.QtGui import QPixmap, QPalette, QColor, QIcon
 from PyQt5.QtCore import Qt, QTimer
 
 # used in debugging, now not needed
@@ -29,10 +29,15 @@ class RobotControlGUI(QMainWindow):
         super().__init__()
         self._node = rclpy.create_node('chair_ui')
         home = get_package_share_directory('chair')
-        self._node.get_logger().info(f'{self._node.get_name()} You are loading from  {home}/led-green-on.png')
+        self._node.get_logger().info(f'{self._node.get_name()} You are loading from {home}/')
         self._green_led = QPixmap(f'{home}/led-green-on.png').scaled(24, 24)
         self._red_led = QPixmap(f"{home}/led-red-on.png").scaled(24, 24)
         self._black_led = QPixmap(f"{home}/led-off.jpg").scaled(24, 24)
+        self._stop_icon = self.style().standardIcon(QStyle.SP_BrowserStop)
+        self._up_icon = self.style().standardIcon(QStyle.SP_ArrowUp)
+        self._down_icon = self.style().standardIcon(QStyle.SP_ArrowDown)
+        self._left_icon = self.style().standardIcon(QStyle.SP_ArrowLeft)
+        self._right_icon = self.style().standardIcon(QStyle.SP_ArrowRight)
 
         self._node.declare_parameter('chair-name', "chair_a")
         self._chair = self._node.get_parameter('chair-name').get_parameter_value().string_value
@@ -103,15 +108,22 @@ class RobotControlGUI(QMainWindow):
         layout.addLayout(buttons)
 
         joystick = QGridLayout()
-        self._up_button = QPushButton('^', self)
-        self._down_button = QPushButton('v', self)
-        self._left_button = QPushButton('<', self)
-        self._right_button = QPushButton('>', self)
+        self._up_button = QPushButton(self)
+        self._up_button.setIcon(self._up_icon)
+        self._up_button.setIcon(QIcon(self._up_icon))
+        self._down_button = QPushButton(self)
+        self._down_button.setIcon(QIcon(self._down_icon))
+        self._left_button = QPushButton(self)
+        self._left_button.setIcon(QIcon(self._left_icon))
+        self._right_button = QPushButton(self)
+        self._right_button.setIcon(QIcon(self._right_icon))
+        self._stop_button = QPushButton(self)
+        self._stop_button.setIcon(QIcon(self._stop_icon))
         joystick.addWidget(QLabel(""), 0, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
         joystick.addWidget(self._up_button, 0, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
         joystick.addWidget(QLabel(""), 0, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
         joystick.addWidget(self._left_button, 1, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
-        joystick.addWidget(QLabel(""), 1, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
+        joystick.addWidget(self._stop_button, 1, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
         joystick.addWidget(self._right_button, 1, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
         joystick.addWidget(QLabel(""), 2, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
         joystick.addWidget(self._down_button, 2, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -122,6 +134,7 @@ class RobotControlGUI(QMainWindow):
         self._down_button.clicked.connect(lambda: self.move_robot('down'))
         self._left_button.clicked.connect(lambda: self.move_robot('left'))
         self._right_button.clicked.connect(lambda: self.move_robot('right'))
+        self._stop_button.clicked.connect(lambda: self.move_robot('stop'))
 
         
         buttons = QVBoxLayout()
@@ -159,6 +172,9 @@ class RobotControlGUI(QMainWindow):
             twist_msg.angular.z = 0.5
         elif direction == 'right':
             twist_msg.angular.z = -0.5
+        elif direction == 'stop':
+            twist_msg.linear.x = 0.0
+            twist_msg.angular.z = 0.0
             
         self._publisher.publish(twist_msg)
 

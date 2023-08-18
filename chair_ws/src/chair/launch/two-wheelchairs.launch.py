@@ -33,7 +33,7 @@ def generate_launch_description():
                 executable='robot_state_publisher',
                 name='robot_state_publisher',
                 output='screen',
-                parameters=[{'use_sim_time': False, 'robot_description': robot_desc, 'frame_prefix': chair + "/"}}],
+                parameters=[{'use_sim_time': False, 'robot_description': robot_desc, 'frame_prefix': chair + "/"}],
                 arguments=[urdf])
             )
         nodelist.append(
