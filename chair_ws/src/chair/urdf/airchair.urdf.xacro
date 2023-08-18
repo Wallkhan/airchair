@@ -361,7 +361,7 @@
       <wheel_diameter>${2*robot_wheel_radius}</wheel_diameter>
       <publish_odom>true</publish_odom>
       <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>true</publish_wheel_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
       <odometry_frame>${robot_name}/odom</odometry_frame>
       <robot_base_frame>${robot_name}/base_footprint</robot_base_frame>
       <command_topic>cmd_vel</command_topic>
