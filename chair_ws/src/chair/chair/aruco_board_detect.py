@@ -57,19 +57,19 @@ class ArucoTarget(Node):
         super().__init__('aruco_target')
         self.get_logger().info(f'{self.get_name()} created')
 
-        self.declare_parameter('image', "/chair_a/camera/image_raw")
-        self.declare_parameter('info', "/chair_a/camera/camera_info")
-        # self.declare_parameter('target_frame', "/chair_a/target")
-        # self.declare_parameter('target_transform', "/chair_a/target_transform")
+        self.declare_parameter('chair_name', "chair_a")
+        self.declare_parameter('image', "/camera/image_raw")
+        self.declare_parameter('info', "/camera/camera_info")
+        self.declare_parameter('target_offset', "/target_offset")
 
+        self._chair_name = self.get_parameter('chair_name').get_parameter_value().string_value
         self._image_topic = self.get_parameter('image').get_parameter_value().string_value
         self._info_topic = self.get_parameter('info').get_parameter_value().string_value
-        # self._target_topic = self.get_parameter('target_frame').get_parameter_value().string_value
-        # self._target_transform = self.get_parameter('target_transform').get_parameter_value().string_value
+        self._target_topic = self.get_parameter('target_offset').get_parameter_value().string_value
 
-        self.create_subscription(Image, self._image_topic, self._image_callback, 1)
-        self.create_subscription(CameraInfo, self._info_topic, self._info_callback, 1)
-        # self._transform_publisher = self.create_publisher(TransformStamped, self._target_topic, 1)
+        self.create_subscription(Image, f"/{self._chair_name}{self._image_topic}", self._image_callback, 1)
+        self.create_subscription(CameraInfo, f"/{self._chair_name}{self._info_topic}", self._info_callback, 1)
+        self._target_pub = self.create_publisher(PointStamped, f"/{self._chair_name}{self._target_topic}", 1)
 
         self._bridge = CvBridge()
 
@@ -165,7 +165,9 @@ class ArucoTarget(Node):
             pointStamped.point.y = float(py)
             pointStamped.point.z = float(pz)
             point_wrt_target = tf2_geometry_msgs.do_transform_point(pointStamped, t)
+            point_wrt_target.header.stamp = self.get_clock().now().to_msg()
             self.get_logger().info(f"In base coordinate system {point_wrt_target.point.x} {point_wrt_target.point.y} {point_wrt_target.point.z}")
+            self._target_pub.publish(point_wrt_target)
         except TransformException as ex:
             self.get_logger().info(f"Unable to find transformation {ex}")
 
