@@ -133,14 +133,28 @@ class ArucoTarget(Node):
         cv2.drawContours(result, [np.array( [imgpts[2], imgpts[3], imgpts[7], imgpts[6]])], -1, (255, 0, 255), 2)
         cv2.drawContours(result, [np.array( [imgpts[1], imgpts[2], imgpts[6], imgpts[5]])], -1, (255, 255, 0), 2)
         cv2.drawContours(result, [np.array( [imgpts[0], imgpts[3], imgpts[7], imgpts[4]])], -1, (0, 255, 255), 2)
+
+        if retval != 0:
+            result = cv2.drawFrameAxes(result, self._cameraMatrix, self._distortion, rvec, tvec, self._target_width)
+        cv2.imshow('window', result)
+        cv2.waitKey(3)
 		
         r, _ = cv2.Rodrigues(rvec)
+
 
         px = r[0][0] * x + r[0][1] * y + r[0][2] * z + tvec[0]
         py = r[1][0] * x + r[1][1] * y + r[1][2] * z + tvec[1]
         pz = r[2][0] * x + r[2][1] * y + r[2][2] * z + tvec[2]
-        self.get_logger().info(f"Pose is {tvec[0]}, {tvec[1]}, {tvec[2]}")
-        self.get_logger().info(f"In camera coordinate system {px}, {py}, {pz}")
+#        self.get_logger().info(f"Pose is {tvec[0]}, {tvec[1]}, {tvec[2]}")
+#        self.get_logger().info(f"In camera coordinate system {px}, {py}, {pz}")
+   
+        tx = pz
+        ty = -px
+        tz = -py
+        px = tx
+        py = ty
+        pz = tz
+#        self.get_logger().info(f"In ros frame aligned with camera coordinate system {px}, {py}, {pz}")
 
         try:
             t = self._tf_buffer.lookup_transform("chair_a/base_link",  "chair_a/camera_link", rclpy.time.Time())
@@ -151,17 +165,13 @@ class ArucoTarget(Node):
             pointStamped.point.y = float(py)
             pointStamped.point.z = float(pz)
             point_wrt_target = tf2_geometry_msgs.do_transform_point(pointStamped, t)
-            self.get_logger().info(f"In base coordinate system {point_wrt_target}")
+            self.get_logger().info(f"In base coordinate system {point_wrt_target.point.x} {point_wrt_target.point.y} {point_wrt_target.point.z}")
         except TransformException as ex:
             self.get_logger().info(f"Unable to find transformation {ex}")
 
         # Publish TransformStamped
 #        self._create_transform(rvec, tvec)
 
-        if retval != 0:
-            result = cv2.drawFrameAxes(result, self._cameraMatrix, self._distortion, rvec, tvec, self._target_width)
-        cv2.imshow('window', result)
-        cv2.waitKey(3)
 
     def _create_transform(self, rvec, tvec):
         # msg = TransformStamped()

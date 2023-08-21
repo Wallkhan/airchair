@@ -8,11 +8,12 @@ To build a fleet of chairs we need to first create the ArUco plate that goes beh
 
 The 'scenario' directory contains '.json' files that are used to create N wheelchairs with the required targets on their backs. Each 'scenario.json' file describes the number of chairs in the fleet, their respective ArUco board plates, their position in the world, a show video trigger and a camera tilting parameter. 
 The file 'ten_chairs.json' contains arguments to create 10 wheelchairs each with their own targets. The convoy file 'ten_chair_convoy.json' contains the order the chairs are in the convoy. To launch the 10 chairs change into the 'scenario' directory and use 
-'ros2 launch chair scenario.launch.py chairs:=scenario/ten_chairs.json convoy:=ten_chair_convoy.json' 
+'ros2 launch chair scenario.launch.py chairs:=scenario/ten_chairs.json convoy:=scenario/ten_chair_convoy.json' 
 command.
 
 To drive them around with the keyboard, use
 
-
 ros2 run teleop_twist_keyboard teleop_twist_keyboard cmd_vel:=chair_a/cmd_vel 
+
+or (better) use the gui's that will be automatically sapwned using the scenario.launch.py launch file
 
