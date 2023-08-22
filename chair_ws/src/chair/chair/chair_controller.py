@@ -6,6 +6,7 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from std_msgs.msg import String
 from std_msgs.msg import Bool
+from std_msgs.msg import Float32
 from rclpy.qos import DurabilityPolicy
 from rclpy.qos import HistoryPolicy
 from rclpy.qos import QoSProfile
@@ -22,18 +23,20 @@ class ChairController(Node):
     """This is a class that encompasses the basic controller for the wheelchair. It is in one of the
        states defined above. There are service calls to (try) to change from one state to another."""
 
+    TARGET_TIMEOUT = 2 * 1e9  # in nanoseconds
+
     def __init__(self):
         super().__init__('chair_controller')
         self.get_logger().info(f'{self.get_name()} created')
 
         self._chair_status = State.ESTOP
-        self._target_status = False
+        self._target_last_time = self.get_clock().now()
 
         self.declare_parameter('convoy_description', "convoy.json")
         self.declare_parameter('chair_descriptions', "chairs.json")
         self.declare_parameter('chair_name', "chair_a")
         self.declare_parameter('chair_status', "chair_status")      # chair's current running status (a State as defined above)
-        self.declare_parameter('target_status', "target_status")    # chair's view of target status [True, False] (for leader is of person)
+        self.declare_parameter('target_status', "target_status")    # chair's view of target status [0=lost, 1=good]
         self.declare_parameter('convoy_state', "convoy_state")      # static state of convoy Json string
         self.declare_parameter('chair_state', "chair_state")        # static state of this chair Json string
         self.declare_parameter('estop', "estop")                    # push or reset estop button
@@ -61,7 +64,7 @@ class ChairController(Node):
         self._chair_status_pub = self.create_publisher(String, f"/{self.chair_name}/{chair_status}", 10)
 
         target_status = self.get_parameter('target_status').get_parameter_value().string_value
-        self._target_status_pub = self.create_publisher(Bool, f"/{self.chair_name}/{target_status}", 10)
+        self._target_status_pub = self.create_publisher(Float32, f"/{self.chair_name}/{target_status}", 10)
 
         # timer callback to publish status information
         self._timer = self.create_timer(0.1, self._timer_callback)
@@ -72,8 +75,9 @@ class ChairController(Node):
         engage_switch = self.get_parameter('engage').get_parameter_value().string_value
         self.create_service(Engage, f"/{self.chair_name}/{engage_switch}", self._handle_engage)
 
-        # subscribe to teleop messages so we can forward them if in manual mode
+        # subscribe to teleop messages so we can forward them if in appropriate mode mode
         self.create_subscription(Twist, f"/{self.chair_name}/commanded_vel", self._teleop_subscriber, 10)
+        self.create_subscription(Twist, f"/{self.chair_name}/target_vel", self._target_vel_subscriber, 10)
         self._teleop_publisher = self.create_publisher(Twist, f"/{self.chair_name}/cmd_vel", 10)
 
     def _load_json(self, file):
@@ -92,7 +96,15 @@ class ChairController(Node):
     def _timer_callback(self):
         """Deal with publishing target and chair status information"""
         self._chair_status_pub.publish(String(data=self._chair_status.value))
-        self._target_status_pub.publish(Bool(data=self._target_status))
+        
+        v = max(1 - (self.get_clock().now() - self._target_last_time).nanoseconds / ChairController.TARGET_TIMEOUT, 0)
+        if self._chair_status == State.ENGAGED:
+            if v == 0:
+                self._chair_status = State.ESTOP
+                self._teleop_publisher.publish(Twist())
+                self.get_logger().info(f'{self.get_name()} no messages so ESTOP')
+            self.get_logger().info(f'{self.get_name()} timer callback estopping when engaged with v {v}')
+        self._target_status_pub.publish(Float32(data=float(v)))
 
     def _handle_estop(self, request, response):
         """Request to set or reset estop"""
@@ -109,21 +121,31 @@ class ChairController(Node):
     def _handle_engage(self, request, response):
         """Request to engage chair into convoy mode"""
         self.get_logger().info(f'{self.get_name()} setting engage to {request.engage}')
-        if self._chair_status == SState.ESTOP:
+        if self._chair_status == State.ESTOP:
             response.status = False
         elif self._chair_status == State.ENGAGED:
             response.status = False
         else:  # in manual mode
-            if self._target_status:
-                self._chair_status == State.ENGAGED
+            v = max(1 - (self.get_clock().now() - self._target_last_time).nanoseconds / ChairController.TARGET_TIMEOUT, 0)
+            if v >= 0:
                 response.status = True
+                self._chair_status = State.ENGAGED
+                self._teleop_publisher.publish(Twist())
+                self._target_last_time = self.get_clock().now()
+                self.get_logger().info(f'{self.get_name()} now ENGAGED')
             else:
                 response.status = False
         return response
 
     def _teleop_subscriber(self, msg):
-        self.get_logger().info(f'{self.get_name()} got a twist message {msg} in state {self._chair_status}')
+#        self.get_logger().info(f'{self.get_name()} got a twist message {msg} in state {self._chair_status}')
         if self._chair_status == State.MANUAL:
+            self._teleop_publisher.publish(msg)
+
+    def _target_vel_subscriber(self, msg):
+        self.get_logger().info(f'{self.get_name()} got a twist message {msg} in state {self._chair_status}')
+        if self._chair_status == State.ENGAGED:
+            self._target_last_time = self.get_clock().now()
             self._teleop_publisher.publish(msg)
 
 def main(args=None):

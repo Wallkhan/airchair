@@ -58,18 +58,18 @@ class ArucoTarget(Node):
         self.get_logger().info(f'{self.get_name()} created')
 
         self.declare_parameter('chair_name', "chair_a")
-        self.declare_parameter('image', "/camera/image_raw")
-        self.declare_parameter('info', "/camera/camera_info")
-        self.declare_parameter('target_offset', "/target_offset")
+        self.declare_parameter('image', "camera/image_raw")
+        self.declare_parameter('info', "camera/camera_info")
+        self.declare_parameter('target_offset', "target_offset")
 
         self._chair_name = self.get_parameter('chair_name').get_parameter_value().string_value
         self._image_topic = self.get_parameter('image').get_parameter_value().string_value
         self._info_topic = self.get_parameter('info').get_parameter_value().string_value
         self._target_topic = self.get_parameter('target_offset').get_parameter_value().string_value
 
-        self.create_subscription(Image, f"/{self._chair_name}{self._image_topic}", self._image_callback, 1)
-        self.create_subscription(CameraInfo, f"/{self._chair_name}{self._info_topic}", self._info_callback, 1)
-        self._target_pub = self.create_publisher(PointStamped, f"/{self._chair_name}{self._target_topic}", 1)
+        self.create_subscription(Image, f"/{self._chair_name}/{self._image_topic}", self._image_callback, 1)
+        self.create_subscription(CameraInfo, f"/{self._chair_name}/{self._info_topic}", self._info_callback, 1)
+        self._target_pub = self.create_publisher(PointStamped, f"/{self._chair_name}/{self._target_topic}", 1)
 
         self._bridge = CvBridge()
 
@@ -145,8 +145,6 @@ class ArucoTarget(Node):
         px = r[0][0] * x + r[0][1] * y + r[0][2] * z + tvec[0]
         py = r[1][0] * x + r[1][1] * y + r[1][2] * z + tvec[1]
         pz = r[2][0] * x + r[2][1] * y + r[2][2] * z + tvec[2]
-#        self.get_logger().info(f"Pose is {tvec[0]}, {tvec[1]}, {tvec[2]}")
-#        self.get_logger().info(f"In camera coordinate system {px}, {py}, {pz}")
    
         tx = pz
         ty = -px
@@ -154,7 +152,6 @@ class ArucoTarget(Node):
         px = tx
         py = ty
         pz = tz
-#        self.get_logger().info(f"In ros frame aligned with camera coordinate system {px}, {py}, {pz}")
 
         try:
             t = self._tf_buffer.lookup_transform("chair_a/base_link",  "chair_a/camera_link", rclpy.time.Time())
@@ -166,55 +163,9 @@ class ArucoTarget(Node):
             pointStamped.point.z = float(pz)
             point_wrt_target = tf2_geometry_msgs.do_transform_point(pointStamped, t)
             point_wrt_target.header.stamp = self.get_clock().now().to_msg()
-            self.get_logger().info(f"In base coordinate system {point_wrt_target.point.x} {point_wrt_target.point.y} {point_wrt_target.point.z}")
             self._target_pub.publish(point_wrt_target)
         except TransformException as ex:
             self.get_logger().info(f"Unable to find transformation {ex}")
-
-        # Publish TransformStamped
-#        self._create_transform(rvec, tvec)
-
-
-    def _create_transform(self, rvec, tvec):
-        # msg = TransformStamped()
-        # msg.header.stamp = self.get_clock().now().to_msg()
-        # msg.header.frame_id = "tracking_target"
-
-        # Given camera tilt angle in radians and camera connection parameters
-        camera_tilt = 0.25  # in radians
-        camera_origin = np.array([-0.4, 0.0, 1.1 + 0.02/2])
-
-        # Your translation and rotation vectors from solvePnP
-        translation_vec_cam_target = np.array([tvec[0], tvec[1], tvec[2]])
-        rotation_vec_cam_target = np.array([rvec[0], rvec[1], rvec[2]])
-
-        # Create the rotation matrix from rotation vector
-        rotation_matrix_cam_target, _ = cv2.Rodrigues(rotation_vec_cam_target)
-
-        # Create the transformation matrix for camera tilt
-        R_camera_tilt = np.array([[1, 0, 0],
-                                [0, np.cos(camera_tilt), -np.sin(camera_tilt)],
-                                [0, np.sin(camera_tilt), np.cos(camera_tilt)]])
-
-        # Create the transformation matrix for camera position
-        T_base_cam = np.identity(4)
-        T_base_cam[:3, :3] = R_camera_tilt
-        T_base_cam[:3, 3] = camera_origin
-
-        # Calculate the transformation matrix from camera to ArUco target
-        T_cam_target = np.concatenate((rotation_matrix_cam_target, translation_vec_cam_target), axis=1)
-        T_cam_target = np.vstack((T_cam_target, [0, 0, 0, 1]))
-
-        # Calculate the transformation matrix from ArUco target to base_link
-        T_base_target = np.dot(np.linalg.inv(T_base_cam), T_cam_target)
-
-        # Extract translation and rotation information
-        translation_base = T_base_target[:3, 3]
-        rotation_base = T_base_target[:3, :3]
-
-        # Print the results
-        # print("Translation from base_link:", translation_base)
-        # print("Rotation matrix in base_link:\n", rotation_base)
 
 
 def main(args=None):

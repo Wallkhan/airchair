@@ -72,6 +72,8 @@ class RobotControlGUI(QMainWindow):
             self._estop_led.setPixmap(self._red_led)
         elif msg.data == 'Manual':
             self._manual_led.setPixmap(self._red_led)
+        elif msg.data == 'Engaged':
+            self._engaged_led.setPixmap(self._red_led)
         else:
             self._node.get_logger().info(f'{self._node.get_name()} got a message {msg}')
 

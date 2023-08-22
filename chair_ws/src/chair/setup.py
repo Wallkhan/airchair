@@ -32,6 +32,7 @@ setup(
             'chair_controller = chair.chair_controller:main',
             'aruco_board_detect = chair.aruco_board_detect:main',
             'chair_ui = chair.chair_ui:main',
+            'chair_follower = chair.chair_follower:main',
         ],
     },
 )
