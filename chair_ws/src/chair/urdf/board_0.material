@@ -1,4 +1,4 @@
-material board
+material board_0
 {
   technique
   {
@@ -6,7 +6,7 @@ material board
     {
       texture_unit
       {
-        texture board.png
+        texture board_0.png
         filtering anistropic
         max_anisotropy 16
       }
