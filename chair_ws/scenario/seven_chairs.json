@@ -1,0 +1,9 @@
+{
+    "chair_a" : {"target": "logo", "x": "0", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
+    "chair_b" : {"target": "board_5", "x": "2", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_c" : {"target": "board_4", "x": "4", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_d" : {"target": "board_3", "x": "6", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_e" : {"target": "board_2", "x": "8", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_f" : {"target": "board_1", "x": "10", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_g" : {"target": "board", "x": "12", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"}
+}
