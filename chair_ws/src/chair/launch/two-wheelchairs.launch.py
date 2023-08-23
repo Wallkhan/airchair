@@ -8,11 +8,11 @@ from launch_ros.actions import Node
 import xacro
 
 def generate_launch_description():
-    robots = [
+    chairs = [
         {'name': 'leader_chair', 'target': 'board', 'x': '0', 'y': '0', 'theta': '0', 'show_video': 'false', 'camera_tilt': '0.25'},
         {'name': 'chair_a', 'target': 'apriltag_36h10_0', 'x': '-2', 'y': '0', 'theta': '0', 'show_video': 'false', 'camera_tilt': '0.25'}
         ]
-    print(robots)
+    print(chairs)
     urdf = os.path.join(get_package_share_directory('chair'), 'airchair.urdf.xacro')
 
 
@@ -23,27 +23,26 @@ def generate_launch_description():
     print(q)
     nodelist.append(q)
 
-    for robot in robots:
-        print(robot)
-        robot_desc = xacro.process_file(urdf, mappings={'name' : robot['name'], 'target' : robot['target'], 'show_video': robot['show_video'], 'camera_tilt': robot['camera_tilt']}).toxml()
+    for chair in chairs:
+        print(chair)
+        robot_desc = xacro.process_file(urdf, mappings={'name' : chair['name'], 'target' : chair['target'], 'show_video': chair['show_video'], 'camera_tilt': chair['camera_tilt']}).toxml()
         nodelist.append(
             Node(
-                namespace = robot['name'],
+                namespace = chair['name'],
                 package='robot_state_publisher',
                 executable='robot_state_publisher',
                 name='robot_state_publisher',
                 output='screen',
-                parameters=[{'use_sim_time': False, 'robot_description': robot_desc, 'frame_prefix': chair + "/"}],
+                parameters=[{'use_sim_time': False, 'robot_description': robot_desc, 'frame_prefix': chair['name'] + "/"}],
                 arguments=[urdf])
             )
         nodelist.append(
             Node(
-                namespace = robot['name'],
+                namespace = chair['name'],
                 package='gazebo_ros',
                 executable='spawn_entity.py',
                 name='urdf_spawner',
                 output='screen',
-                arguments=["-topic", "/" + robot['name'] + "/robot_description",  "-entity",  robot['name'], 
-                           "-x", robot['x'], '-y', robot['y'], '-Y', robot['theta']])
+                arguments=["-topic", "/" + chair['name'] + "/robot_description",  "-entity",  chair['name'], "-x", chair['x'], '-y', chair['y'], '-Y', chair['theta']])
             )
     return LaunchDescription(nodelist)
