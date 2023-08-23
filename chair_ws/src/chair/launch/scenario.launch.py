@@ -19,6 +19,9 @@ def generate_launch_description():
            chair_file = arg.split('chairs:=', 1)[1]
         elif arg.startswith('convoy:='):
            convoy_file = arg.split('convoy:=', 1)[1]
+        elif arg.startswith('board:='):
+            board_file = arg.split('board:=', 1)[1]
+            print(f"board file is {board_file}")
         elif ':=' in arg:
            print(f"Unknown argument in {arg}")
            sys.exit(0)
