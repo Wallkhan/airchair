@@ -41,12 +41,14 @@ def generate_launch_description():
     except Exception as e:
         print(f"Unable to read/parse {board_file} {e}")
         sys.exit(0)
+    print(f"All configuration files loaded {chairs}")
     
-    chair_list = iter(chairs)
-    for chair in chair_list:
-        following = next(chair_list, None)
-        target = boards[following]['texture']
-        print(f"Chair {chair} is following {following} with {target}")
+    chair_list = convoy['chairs']
+    for i in range(1, len(chair_list)-1): # not the first chair
+        following = chair_list[i-1]
+        board =  chairs[chair_list[i-1]]['target']
+        target = boards[board]
+        print(f"chair {chair_list[i]} is following {chair_list[i-1]} with target {target}")
 
     nodelist = []
 

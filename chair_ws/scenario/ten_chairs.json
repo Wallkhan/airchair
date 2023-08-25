@@ -1,5 +1,5 @@
 {
-    "chair_a" : {"target": "board_0", "x": "10", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
+    "chair_a" : {"target": "board_0", "x": "10", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
     "chair_b" : {"target": "board_1", "x":  "8", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
     "chair_c" : {"target": "board_2", "x":  "6", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
     "chair_d" : {"target": "board_3", "x":  "4", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
