@@ -1,6 +1,6 @@
 {
     "board_5" : {"texture": "board_5.png", "rows": "3", "cols": "3", "markerLength": "0.13", "seperation": "0.01", "ids": "[45, 46, 47, 48, 49, 50, 51, 52, 53]" },
-    "board_r" : {"texture": "board_4.png", "rows": "3", "cols": "3", "markerLength": "0.13", "seperation": "0.01", "ids": "[36, 37, 38, 39, 40, 41, 42, 43, 44]" },
+    "board_4" : {"texture": "board_4.png", "rows": "3", "cols": "3", "markerLength": "0.13", "seperation": "0.01", "ids": "[36, 37, 38, 39, 40, 41, 42, 43, 44]" },
     "board_3" : {"texture": "board_3.png", "rows": "3", "cols": "3", "markerLength": "0.13", "seperation": "0.01", "ids": "[27, 28, 29, 30, 31, 32, 33, 34, 35]" },
     "board_2" : {"texture": "board_2.png", "rows": "3", "cols": "3", "markerLength": "0.13", "seperation": "0.01", "ids": "[18, 19, 20, 21, 22, 23, 24, 25, 26]" },
     "board_1" : {"texture": "board_1.png", "rows": "3", "cols": "3", "markerLength": "0.13", "seperation": "0.01", "ids": "[9, 10, 11, 12, 13, 14, 15, 16, 17]" },
