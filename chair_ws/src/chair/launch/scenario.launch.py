@@ -25,7 +25,7 @@ def generate_launch_description():
         elif ':=' in arg:
            print(f"Unknown argument in {arg}")
            sys.exit(0)
-    print(f"Launching scenario from {chair_file} and {convoy_file}")
+    print(f"Launching scenario from {chair_file} and {convoy_file} and {board_file}")
     try:
         chairs = json.load(open(chair_file, 'r'))
     except Exception as e:
@@ -36,6 +36,17 @@ def generate_launch_description():
     except Exception as e:
         print(f"Unable to read/parse {convoy_file} {e}")
         sys.exit(0)
+    try:
+        boards = json.load(open(board_file, 'r'))
+    except Exception as e:
+        print(f"Unable to read/parse {board_file} {e}")
+        sys.exit(0)
+    
+    chair_list = iter(chairs)
+    for chair in chair_list:
+        following = next(chair_list, None)
+        target = boards[following]['texture']
+        print(f"Chair {chair} is following {following} with {target}")
 
     nodelist = []
 
