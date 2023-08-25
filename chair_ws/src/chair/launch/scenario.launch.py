@@ -43,12 +43,6 @@ def generate_launch_description():
         sys.exit(0)
     print(f"All configuration files loaded {chairs}")
     
-    chair_list = convoy['chairs']
-    for i in range(1, len(chair_list)-1): # not the first chair
-        following = chair_list[i-1]
-        board =  chairs[chair_list[i-1]]['target']
-        target = boards[board]
-        print(f"chair {chair_list[i]} is following {chair_list[i-1]} with target {target}")
 
     nodelist = []
 
@@ -60,7 +54,10 @@ def generate_launch_description():
     # process each chair
     urdf = os.path.join(get_package_share_directory('chair'), 'airchair.urdf.xacro')
 
-    for chair in chairs:
+    chair_list = convoy['chairs']
+    for i in range(len(chair_list)):
+        print(f"Processing chair {i} {chair_list}")
+        chair = chair_list[i]
         print(f"Processing {chair}")
         data = chairs[chair]
         print(f"Looking up {chair} resulted in {data}")
@@ -102,4 +99,12 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{'chair-name': chair}])
             )
+        if i > 0: # not for first chair
+            print(f"Processing chair {i}")
+            following = chair_list[i-1]
+            print(f"which is chair {chair_list[i-1]}")
+            board =  chairs[chair_list[i-1]]['target']
+            print(f"which has board {board}")
+            target = boards[board]
+            print(f"chair {chair_list[i]} is following {chair_list[i-1]} with target {target}")
     return LaunchDescription(nodelist)
