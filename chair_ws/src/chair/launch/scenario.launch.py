@@ -25,7 +25,7 @@ def generate_launch_description():
         elif ':=' in arg:
            print(f"Unknown argument in {arg}")
            sys.exit(0)
-    print(f"Launching scenario from {chair_file} and {convoy_file} and {board_file}")
+    print(f"Launching scenario from chair file {chair_file} and convoy {convoy_file} and board {board_file}")
     try:
         chairs = json.load(open(chair_file, 'r'))
     except Exception as e:
@@ -102,9 +102,15 @@ def generate_launch_description():
         if i > 0: # not for first chair
             print(f"Processing chair {i}")
             following = chair_list[i-1]
-            print(f"which is chair {chair_list[i-1]}")
-            board =  chairs[chair_list[i-1]]['target']
-            print(f"which has board {board}")
-            target = boards[board]
+            try:
+                board =  chairs[chair_list[i-1]]['target']
+            except Exception as e:
+                print(f"No target entry in chair definition {chair_list[i-1]}")
+                sys.exit(0)
+            try:
+                target = boards[board]
+            except Exception as e:
+                print(f"No board entry for board {board}")
+                sys.exit(0)
             print(f"chair {chair_list[i]} is following {chair_list[i-1]} with target {target}")
     return LaunchDescription(nodelist)
