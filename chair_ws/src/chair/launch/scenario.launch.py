@@ -13,6 +13,7 @@ import xacro
 def generate_launch_description():
     chair_file = 'chairs.json'
     convoy_file = 'convoy.json'
+    board_file = 'board.json'
     for arg in sys.argv: # there must be a better way...
         if arg.startswith('chairs:='):
            print(arg.split('chairs:=', 1)[1])

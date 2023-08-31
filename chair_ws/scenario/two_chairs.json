@@ -1,5 +1,0 @@
-{
-    "chair_a" : {"target": "board_1", "x": "0", "y": "0", "theta": "0", "show_video": "True", "camera_tilt": "0.25" },
-    "leader" : {"target": "board_0", "x": "2", "y": "0", "theta": "0", "show_video": "False", "camera_tilt": "0.25" }
-}
-    
