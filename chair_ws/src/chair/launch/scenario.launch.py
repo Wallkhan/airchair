@@ -63,6 +63,7 @@ def generate_launch_description():
         data = chairs[chair]
         print(f"Looking up {chair} resulted in {data}")
         robot_desc = xacro.process_file(urdf, mappings={'name' : chair, 'target' : data['target'], 'show_video': data['show_video'], 'camera_tilt': data['camera_tilt']}).toxml()
+
         nodelist.append(
             Node(
                 namespace = chair,
@@ -113,5 +114,24 @@ def generate_launch_description():
             except Exception as e:
                 print(f"No board entry for board {board}")
                 sys.exit(0)
-            print(f"chair {chair_list[i]} is following {chair_list[i-1]} with target {target}")
+            aruco_defn = json.dumps(target)
+            print(f"chair {chair_list[i]} is following {chair_list[i-1]} with target {aruco_defn}")
+            nodelist.append(
+                Node(
+                    namespace = chair,
+                    package = 'chair',
+                    executable = 'aruco_board_detect',
+                    name = 'aruco_board_detect',
+                    output='screen',
+                    parameters=[{'chair-name': chair_list[i], 'board_definition': aruco_defn}])
+                )
+            nodelist.append(
+                Node(
+                    namespace = chair,
+                    package = 'chair',
+                    executable = 'chair_follower',
+                    name = 'chair_follower',
+                    output='screen',
+                    parameters=[{'chair-name': chair_list[i]}])
+                )
     return LaunchDescription(nodelist)

@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import json 
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
@@ -11,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from geometry_msgs.msg import TransformStamped
-from scipy.spatial.transform import Rotation as R
+#from scipy.spatial.transform import Rotation as R
 
 import tf2_ros
 import tf2_geometry_msgs
@@ -61,11 +62,14 @@ class ArucoTarget(Node):
         self.declare_parameter('image', "camera/image_raw")
         self.declare_parameter('info', "camera/camera_info")
         self.declare_parameter('target_offset', "target_offset")
+        self.declare_parameter('board_definition', "{}")
 
         self._chair_name = self.get_parameter('chair_name').get_parameter_value().string_value
         self._image_topic = self.get_parameter('image').get_parameter_value().string_value
         self._info_topic = self.get_parameter('info').get_parameter_value().string_value
         self._target_topic = self.get_parameter('target_offset').get_parameter_value().string_value
+        self._board_definition = json.loads(self.get_parameter('board_definition').get_parameter_value().string_value)
+        self.get_logger().info(f'{self.get_name()} has board definition {self._board_definition}')
 
         self.create_subscription(Image, f"/{self._chair_name}/{self._image_topic}", self._image_callback, 1)
         self.create_subscription(CameraInfo, f"/{self._chair_name}/{self._info_topic}", self._info_callback, 1)
@@ -83,7 +87,12 @@ class ArucoTarget(Node):
             self._aruco_detector = cv2.aruco.ArucoDetector(self._aruco_dict, self._aruco_param)
             self._markerLength = .13   # Here, our measurement unit is meters.
             self._markerSeparation = 0.01   # Here, our measurement unit is meters.
-            self._ids = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
+            
+            ids = self._board_definition['ids']
+            self.get_logger().error(f'ids is {ids}')
+#            self._ids = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
+            self._ids = np.array(json.loads(ids))
+            self.get_logger().error(f'afterm9dsm9sm{self._ids}')
             self._board = cv2.aruco.GridBoard((3, 3), self._markerLength, self._markerSeparation, cv2.aruco.getPredefinedDictionary(dict), self._ids)
             self._target_width = target_width
             self._image = None
