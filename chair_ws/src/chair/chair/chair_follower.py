@@ -29,14 +29,14 @@ class ChairFollower(Node):
 
 
         twist_msg = Twist()
-        if d > 1.0:
+        if d > 3.5:
             twist_msg.linear.x = 0.5
-        if theta > 15:
+        if theta > 5:
             self.get_logger().info(f'{self.get_name()} theta > 15')
-            twist_msg.angular.z = 0.5
-        if theta < -15:
+            twist_msg.angular.z = max(0.5, (theta-5) * 0.05)
+        if theta < -5:
             self.get_logger().info(f'{self.get_name()} theta < -15')
-            twist_msg.angular.z = -0.5
+            twist_msg.angular.z = max(-0.5, (theta+5) * 0.05) 
 
         self.get_logger().info(f'{self.get_name()} d {d} theta {theta} {twist_msg}')
         self._publisher.publish(twist_msg)

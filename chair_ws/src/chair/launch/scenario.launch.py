@@ -123,7 +123,7 @@ def generate_launch_description():
                     executable = 'aruco_board_detect',
                     name = 'aruco_board_detect',
                     output='screen',
-                    parameters=[{'chair-name': chair_list[i], 'board_definition': aruco_defn}])
+                    parameters=[{'chair_name': chair_list[i], 'board_definition': aruco_defn}])
                 )
             nodelist.append(
                 Node(
@@ -132,6 +132,6 @@ def generate_launch_description():
                     executable = 'chair_follower',
                     name = 'chair_follower',
                     output='screen',
-                    parameters=[{'chair-name': chair_list[i]}])
+                    parameters=[{'chair_name': chair_list[i]}])
                 )
     return LaunchDescription(nodelist)

@@ -2,6 +2,7 @@ import math
 import numpy as np
 import json 
 import rclpy
+import time
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from tf2_ros.buffer import Buffer
@@ -11,14 +12,11 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
-from geometry_msgs.msg import TransformStamped
-#from scipy.spatial.transform import Rotation as R
+from geometry_msgs.msg import TransformStamped, Transform
 
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import Point, PointStamped
-
-
 
 
 
@@ -101,7 +99,7 @@ class ArucoTarget(Node):
             self.get_logger().info(f"using dictionary {tag_set}, with board {self._ids}")
 
         self._tf_buffer = Buffer()
-        TransformListener(self._tf_buffer, self)
+        self._tf_listener = TransformListener(self._tf_buffer, self)
 
     def _info_callback(self, msg):
         if msg.distortion_model != "plumb_bob":
@@ -163,10 +161,25 @@ class ArucoTarget(Node):
         pz = tz
 
         try:
-            t = self._tf_buffer.lookup_transform("chair_a/base_link",  "chair_a/camera_link", rclpy.time.Time())
+            if False:
+# I think that there is a bug in the Buffer() code in Python when running in a namespace
+# so the hack below gets around it. Horribly
+                self.get_logger().info(f" Trying {self._chair_name}/base_link {self._chair_name}/camera_link")
+                t = self._tf_buffer.lookup_transform(f"{self._chair_name}/base_link",  "f{self._chair_name}/camera_link", rclpy.time.Time())
+                self.get_logger().info(f"Transform lookup worked")
+            else:
+# these values were obtained by listening to the static transformation outside of a namespace
+                t = TransformStamped()
+                t.transform.translation.x = 0.662
+                t.transform.translation.y = 0.0
+                t.transform.translation.z = -0.977
+                t.transform.rotation.x = 0.0
+                t.transform.rotation.y = -0.125
+                t.transform.rotation.z = 0.0
+                t.transform.rotation.w = 0.992
             pointStamped = PointStamped()
             pointStamped.header.stamp = self.get_clock().now().to_msg()
-            pointStamped.header.frame_id = "chair_a/camera_link"
+            pointStamped.header.frame_id = "f{self._chair_name}/camera_link"
             pointStamped.point.x = float(px)
             pointStamped.point.y = float(py)
             pointStamped.point.z = float(pz)
