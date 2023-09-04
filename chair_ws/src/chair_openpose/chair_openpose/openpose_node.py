@@ -9,7 +9,7 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from builtin_interfaces.msg import Time
-from chair.openpose_wrapper import OpenPoseWrapper
+from chair_openpose.openpose_wrapper import OpenPoseWrapper
 # from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 # image = self.bridge.cv2_to_imgmsg(result.cvOutputData, "rgb8")
 

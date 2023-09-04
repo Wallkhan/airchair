@@ -9,8 +9,7 @@ setup(
     version='3.0.0',
     packages=[package_name],
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
+        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name), glob('launch/*.py')),
     ],
@@ -23,8 +22,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'openpose_node = chair_openpose.openpose_node:main'
-            'openpose_view = chair_openpose.openpose_view:main'
+            'openpose_node = chair_openpose.openpose_node:main',
+            'openpose_view = chair_openpose.openpose_view:main',
+            'opencv_camera = chair_openpose.opencv_camera:main'
         ],
     },
 )
