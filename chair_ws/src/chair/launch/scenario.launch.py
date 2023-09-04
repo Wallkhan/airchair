@@ -67,6 +67,15 @@ def generate_launch_description():
         nodelist.append(
             Node(
                 namespace = chair,
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='static_transform_publisher',
+                output='screen',
+                arguments=["0", "0", "0", "0", "0", "0", "1", "map", f"{chair}/odom"])
+            )
+        nodelist.append(
+            Node(
+                namespace = chair,
                 package='robot_state_publisher',
                 executable='robot_state_publisher',
                 name='robot_state_publisher',
