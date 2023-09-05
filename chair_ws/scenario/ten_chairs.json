@@ -1,0 +1,12 @@
+{
+    "chair_z" : {"target": "logo", "x": "0", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
+    "chair_j" : {"target": "board_8", "x": "2", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
+    "chair_h" : {"target": "board_7", "x": "4", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
+    "chair_g" : {"target": "board_6", "x": "6", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25" },
+    "chair_f" : {"target": "board_5", "x": "8", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_e" : {"target": "board_4", "x": "10", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_d" : {"target": "board_3", "x": "12", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_c" : {"target": "board_2", "x": "14", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_b" : {"target": "board_1", "x": "16", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"},
+    "chair_a" : {"target": "board_0", "x": "18", "y": "0", "theta": "0", "show_video": "false", "camera_tilt": "0.25"}
+}
