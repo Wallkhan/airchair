@@ -70,3 +70,5 @@ chair_ws/scenario/log/latest_build
 chair_ws/scenario/log/build_2023-07-28_10-30-49/events.log
 chair_ws/scenario/log/build_2023-07-28_10-30-49/logger_all.log
 .gitignore
+frames.pdf
+frames.gv
