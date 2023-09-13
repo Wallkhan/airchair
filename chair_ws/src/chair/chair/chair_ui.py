@@ -5,7 +5,7 @@
 import sys
 import rclpy
 import math
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 from geometry_msgs.msg import Twist
 from chair_interface.srv import EStop
 from chair_interface.srv import Engage
@@ -32,6 +32,7 @@ class RobotControlGUI(QMainWindow):
         self._green_led = QPixmap(f'{home}/led-green-on.png').scaled(24, 24)
         self._red_led = QPixmap(f"{home}/led-red-on.png").scaled(24, 24)
         self._black_led = QPixmap(f"{home}/led-off.jpg").scaled(24, 24)
+        self._orange_led = QPixmap(f"{home}/led-orange.png").scaled(24, 24)
         self._stop_icon = QPixmap(f"{home}/stop-96.png").scaled(96, 96)
         self._up_icon = QIcon(QPixmap(f"{home}/up-100.png"))
         self._down_icon = QIcon(QPixmap(f"{home}/down-100.png"))
@@ -48,6 +49,7 @@ class RobotControlGUI(QMainWindow):
 
         self._publisher = self._node.create_publisher(Twist, f'/{self._chair}/commanded_vel', 1)
         self._node.create_subscription(String, f'/{self._chair}/chair_status', self._chair_status_callback, 1)
+        self._node.create_subscription(Float32, f'/{self._chair}/target_status', self._set_connection, 1)
 
         client = self._node.create_client(EStop, f'/{self._chair}/estop')
         while not client.wait_for_service(timeout_sec=1.0):
@@ -104,6 +106,29 @@ class RobotControlGUI(QMainWindow):
         estop1.addWidget(QLabel("Engaged"), 1, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
         estop.addLayout(estop1)
         layout.addLayout(estop)
+
+        connection = QHBoxLayout()
+        connection.addWidget(QLabel("Connection strength"), alignment=Qt.AlignmentFlag.AlignHCenter)
+        connection_1 = QGridLayout()
+        self._no_connection_led = QLabel()
+        self._no_connection_led.setPixmap(self._black_led)
+        self._weak_connection_1 = QLabel()
+        self._weak_connection_1.setPixmap(self._black_led)
+        self._weak_connection_2 = QLabel()
+        self._weak_connection_2.setPixmap(self._black_led)
+        self._good_connection_1 = QLabel()
+        self._good_connection_1.setPixmap(self._black_led)
+        self._good_connection_2 = QLabel()
+        self._good_connection_2.setPixmap(self._black_led)
+        connection_1.addWidget(self._no_connection_led, 0, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
+        connection_1.addWidget(self._weak_connection_1, 0, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
+        connection_1.addWidget(self._weak_connection_2, 0, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
+        connection_1.addWidget(self._good_connection_1, 0, 3, alignment=Qt.AlignmentFlag.AlignHCenter)
+        connection_1.addWidget(self._good_connection_2, 0, 4, alignment=Qt.AlignmentFlag.AlignHCenter)
+        connection.addLayout(connection_1)
+        layout.addLayout(connection)
+        # self._connection = QLabel()
+        # connection.addWidget(setPixmap(self._black_led))
 
         buttons = QVBoxLayout()
         buttons.addWidget(QLabel("Reset EStop Status"), alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -183,6 +208,34 @@ class RobotControlGUI(QMainWindow):
         self._EStop_req.estop = True
         self._future = self._EStop_cli.call_async(self._EStop_req) # ignoring the future
 
+    def _set_connection(self, msg):
+        self._no_connection_led.setPixmap(self._black_led)
+        self._weak_connection_1.setPixmap(self._black_led)
+        self._weak_connection_2.setPixmap(self._black_led)
+        self._good_connection_1.setPixmap(self._black_led)
+        self._good_connection_2.setPixmap(self._black_led)
+        if msg.data < 0.2:
+            self._no_connection_led.setPixmap(self._red_led)
+        elif msg.data >= 0.2 and msg.data < 0.4:
+            self._no_connection_led.setPixmap(self._red_led)
+            self._weak_connection_1.setPixmap(self._orange_led)
+        elif msg.data >= 0.4 and msg.data < 0.6:
+            self._no_connection_led.setPixmap(self._red_led)
+            self._weak_connection_1.setPixmap(self._orange_led)
+            self._weak_connection_2.setPixmap(self._orange_led)
+        elif msg.data >= 0.6 and msg.data < 0.8:
+            self._no_connection_led.setPixmap(self._red_led)
+            self._weak_connection_1.setPixmap(self._orange_led)
+            self._weak_connection_2.setPixmap(self._orange_led)
+            self._good_connection_1.setPixmap(self._green_led)
+        elif msg.data >= 0.8:
+            self._no_connection_led.setPixmap(self._red_led)
+            self._weak_connection_1.setPixmap(self._orange_led)
+            self._weak_connection_2.setPixmap(self._orange_led)
+            self._good_connection_1.setPixmap(self._green_led)
+            self._good_connection_2.setPixmap(self._green_led)
+        else:
+            self._node.get_logger().info(f'{self._node.get_name()} got no connection message {msg}')
 
     def move_robot(self, direction):
         self._node.get_logger().info(f'{self._node.get_name()} direction is {direction}')
@@ -198,9 +251,9 @@ class RobotControlGUI(QMainWindow):
         elif direction.startswith('diag'):
             angle = math.pi / 4.0
             if 'up' in direction:
-                twist_msg.linear.x = 0.5
+                twist_msg.linear.x = 0.30
             else:
-                twist_msg.linear.x = -0.5
+                twist_msg.linear.x = -0.30
             if 'left' in direction:
                 twist_msg.angular.z = angle
             else:
