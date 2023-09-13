@@ -57,7 +57,14 @@ class RobotControlGUI(QMainWindow):
         self._EStop_req = EStop.Request()
         self._EStop_cli = client
 
+        client = self._node.create_client(Engage, f'/{self._chair}/engage')
+        while not client.wait_for_service(timeout_sec=1.0):
+            self._node.get_logger().info(f'{self._node.get_name()} Waiting for /{self._chair}/engage')
+        self._Engage_req = Engage.Request()
+        self._Engage_cli = client
+
         self.init_ui()
+
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._timerCallback)
         self._timer.start(100)
@@ -89,7 +96,7 @@ class RobotControlGUI(QMainWindow):
         layout = QVBoxLayout()
 
         estop = QVBoxLayout()
-        estop.addWidget(QLabel("Status"), alignment=Qt.AlignmentFlag.AlignHCenter)
+        estop.addWidget(QLabel("Chair Mode"), alignment=Qt.AlignmentFlag.AlignHCenter)
         estop1 = QGridLayout()
 
         self._estop_led = QLabel()
@@ -106,6 +113,8 @@ class RobotControlGUI(QMainWindow):
         estop1.addWidget(QLabel("Engaged"), 1, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
         estop.addLayout(estop1)
         layout.addLayout(estop)
+        layout.addWidget(QLabel(""), alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(QLabel("Convoy Status"), alignment=Qt.AlignmentFlag.AlignHCenter)
 
         connection = QHBoxLayout()
         connection.addWidget(QLabel("Connection strength"), alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -127,12 +136,14 @@ class RobotControlGUI(QMainWindow):
         connection_1.addWidget(self._good_connection_2, 0, 4, alignment=Qt.AlignmentFlag.AlignHCenter)
         connection.addLayout(connection_1)
         layout.addLayout(connection)
-        # self._connection = QLabel()
-        # connection.addWidget(setPixmap(self._black_led))
+        followButton = QPushButton("Follow")
+        layout.addWidget(followButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        followButton.clicked.connect(self._requestFollow)
 
+        layout.addWidget(QLabel(""), alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(QLabel("Manual Control"), alignment=Qt.AlignmentFlag.AlignHCenter)
         buttons = QVBoxLayout()
-        buttons.addWidget(QLabel("Reset EStop Status"), alignment=Qt.AlignmentFlag.AlignHCenter)
-        resetEStop = QPushButton("Reset")
+        resetEStop = QPushButton("Enable")
         buttons.addWidget(resetEStop, alignment=Qt.AlignmentFlag.AlignHCenter)
         resetEStop.clicked.connect(self._resetEStop)
         layout.addLayout(buttons)
@@ -186,8 +197,7 @@ class RobotControlGUI(QMainWindow):
         self._stop_button.clicked.connect(lambda: self.move_robot('stop'))
         
         buttons = QVBoxLayout()
-        buttons.addWidget(QLabel("ESTOP"), alignment=Qt.AlignmentFlag.AlignHCenter)
-        engageEStop = QPushButton("Engage")
+        engageEStop = QPushButton("STOP Wheelchair")
         buttons.addWidget(engageEStop, alignment=Qt.AlignmentFlag.AlignHCenter)
         engageEStop.clicked.connect(self._engageEStop)
         layout.addLayout(buttons)
@@ -195,6 +205,14 @@ class RobotControlGUI(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+#        self.setFixedSize(self.size())
+
+    def _requestFollow(self):
+        self._node.get_logger().info(f'{self._node.get_name()} requesting to follow ')
+        self._EStop_req = Engage.Request()
+        self._EStop_req.engage = True
+        self._future = self._Engage_cli.call_async(self._Engage_req) # ignoring the future
 
     def _resetEStop(self):
         self._node.get_logger().info(f'{self._node.get_name()} resetting eStop')
