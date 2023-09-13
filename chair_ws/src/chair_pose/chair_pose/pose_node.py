@@ -16,38 +16,30 @@ from ultralytics.engine.results import Results, Keypoints
 from ament_index_python.packages import get_package_share_directory
 
 class YOLO_Node(Node):
+    _BODY_PARTS = ["NOSE", "LEFT_EYE", "RIGHT_EYE", "LEFT_EAR", "RIGHT_EAR", "LEFT_SHOULDER", "RIGHT_SHOULDER",
+                   "LEFT_ELBOW", "RIGHT_ELBOW", "LEFT_WRIST", "RIGHT_WRIST", "LEFT_HIP", "RIGHT_HIP", "LEFT_KNEE",
+                   "RIGHT_KNEE", "LEFT_ANKLE", "RIGHT_ANKLE"]
     def __init__(self):
         super().__init__('pose_node')
 
         # params
-        self._model_file = os.path.join(get_package_share_directory('chair_pose_yolo'), 'yolov8n-pose.pt') 
+        self._model_file = os.path.join(get_package_share_directory('chair_pose'), 'yolov8n-pose.pt') 
         self.declare_parameter("model", self._model_file) 
-        model = self.get_parameter(
-            "model").get_parameter_value().string_value
+        model = self.get_parameter("model").get_parameter_value().string_value
 
         self.declare_parameter("device", "cuda:0")
-        self._device = self.get_parameter(
-            "device").get_parameter_value().string_value
+        self._device = self.get_parameter("device").get_parameter_value().string_value
 
         self.declare_parameter("threshold", 0.5)
-        self._threshold = self.get_parameter(
-            "threshold").get_parameter_value().double_value
-
-        self.declare_parameter("enable", True)
-        self._enable = self.get_parameter(
-            "enable").get_parameter_value().bool_value
+        self._threshold = self.get_parameter("threshold").get_parameter_value().double_value
 
         self.declare_parameter("camera_topic", "/mycamera/image_raw")
-        self._camera_topic = self.get_parameter(
-            "camera_topic").get_parameter_value().string_value
+        self._camera_topic = self.get_parameter("camera_topic").get_parameter_value().string_value
         
         self._move_flag = False
         self._bridge = CvBridge()
         self._model = YOLO(model)
         self._model.fuse()
-        self._BODY_PARTS = {0: "NOSE", 1: "LEFT_EYE", 2: "RIGHT_EYE", 3: "LEFT_EAR", 4: "RIGHT_EAR", 5: "LEFT_SHOULDER", 6: "RIGHT_SHOULDER",
-                            7: "LEFT_ELBOW", 8: "RIGHT_ELBOW", 9: "LEFT_WRIST", 10: "RIGHT_WRIST", 11: "LEFT_HIP", 12: "RIGHT_HIP", 13: "LEFT_KNEE",
-                            14: "RIGHT_KNEE", 15:"LEFT_ANKLE", 16: "RIGHT_ANKLE"}
 
         # subs
         self._sub = self.create_subscription(
@@ -60,7 +52,6 @@ class YOLO_Node(Node):
 
         keypoints_list = []
 
-        points: Keypoints
         for points in results.keypoints:        
             if points.conf is None:
                 continue
@@ -72,22 +63,38 @@ class YOLO_Node(Node):
         return keypoints_list
     
     def _camera_callback(self, data):
-        if self._enable:
-            img = self._bridge.imgmsg_to_cv2(data)
-            # Run inference on the incoming frame
-            results = self._model.predict(
+        self.get_logger().info(f'{self.get_name()} camera callback')
+        img = self._bridge.imgmsg_to_cv2(data)
+        results = self._model.predict(
                 source = img,
                 verbose = False,
                 stream = False,
                 conf = self._threshold,
                 device = self._device
-            )
+        )
+        if len(results) != 1:
+            self.get_logger().info(f'{self.get_name()}  Nothing to see here or too much {len(results)}')
+            return
             
-            results: Results = results[0].cpu()
-            if results.keypoints:
-                keypoints = self.parse_keypoints(results)
+        results: Results = results[0].cpu()
+        self.get_logger().info(f'{self.get_name()} {results.names[0]} {results.boxes.data} {results.boxes.conf} {results.orig_shape} {len(results.boxes.data)}')
+        if len(results.boxes.data) == 0:
+            self.get_logger().info(f'{self.get_name()}  boxes are too small')
+            return
+        box = results.boxes.data[0]
+        mid = (box[0] + box[2]) / 2
+        full = results.orig_shape[1] / 2
+        diff = (full - mid) /   full
+        height = (box[3] - box[1]) /  results.orig_shape[0]
+        self.get_logger().info(f'{self.get_name()} from -1..+1 {diff} height {height}')
+        
+
+        if results.keypoints:
+            keypoints = self.parse_keypoints(results)
             
+            self.get_logger().info(f'{self.get_name()} got {len(keypoints)}')
             for i in range(len(keypoints)):
+                self.get_logger().info(f'{self.get_name()} got keypoint {YOLO_Node._BODY_PARTS[keypoints[i][0]]}')
                 if keypoints[i][0] == 9:
                     self._move_flag = True
                     self.get_logger().info(f'Left Wrist Found: {self._move_flag}')
@@ -105,10 +112,11 @@ class YOLO_Node(Node):
                     self._chair_publisher.publish(move)
 
             # Visualize results on frame
-            annotated_frame = results[0].plot()
-
-            cv2.imshow('Results', annotated_frame)
-            cv2.waitKey(3)
+            if len(keypoints) > 0:
+                annotated_frame = results[0].plot()
+    
+                cv2.imshow('Results', annotated_frame)
+                cv2.waitKey(3)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -118,3 +126,5 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
