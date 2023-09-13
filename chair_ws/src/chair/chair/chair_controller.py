@@ -108,11 +108,10 @@ class ChairController(Node):
 
     def _handle_estop(self, request, response):
         """Request to set or reset estop"""
-        self.get_logger().info(f'{self.get_name()} setting estop to {request.estop}')
+#        self.get_logger().info(f'{self.get_name()} setting estop to {request.estop}')
         if request.estop:
             self._chair_status = State.ESTOP
             msg = Twist()
-            self.get_logger().info(f'{self.get_name()} setting estop twist to  {msg}')
             self._teleop_publisher.publish(msg)
         else:
             self._chair_status = State.MANUAL
@@ -120,7 +119,7 @@ class ChairController(Node):
 
     def _handle_engage(self, request, response):
         """Request to engage chair into convoy mode"""
-        self.get_logger().info(f'{self.get_name()} setting engage to {request.engage}')
+#        self.get_logger().info(f'{self.get_name()} setting engage to {request.engage}')
         if self._chair_status == State.ESTOP:
             response.status = False
         elif self._chair_status == State.ENGAGED:
@@ -143,9 +142,9 @@ class ChairController(Node):
             self._teleop_publisher.publish(msg)
 
     def _target_vel_subscriber(self, msg):
-        self.get_logger().info(f'{self.get_name()} got a twist message {msg} in state {self._chair_status}')
+#        self.get_logger().info(f'{self.get_name()} got a twist message {msg} in state {self._chair_status}')
+        self._target_last_time = self.get_clock().now()
         if self._chair_status == State.ENGAGED:
-            self._target_last_time = self.get_clock().now()
             self._teleop_publisher.publish(msg)
 
 def main(args=None):

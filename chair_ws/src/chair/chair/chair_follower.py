@@ -38,7 +38,7 @@ class ChairFollower(Node):
             self.get_logger().info(f'{self.get_name()} theta < -15')
             twist_msg.angular.z = max(-0.5, (theta+5) * 0.05) 
 
-        self.get_logger().info(f'{self.get_name()} d {d} theta {theta} {twist_msg}')
+#        self.get_logger().info(f'{self.get_name()} d {d} theta {theta} {twist_msg}')
         self._publisher.publish(twist_msg)
 
 

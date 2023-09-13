@@ -24,7 +24,7 @@ def generate_launch_description():
             board_file = arg.split('board:=', 1)[1]
             print(f"board file is {board_file}")
         elif ':=' in arg:
-           print(f"Unknown argument in {arg}")
+           print(f"Unknown argument in {arg}. Usage ros2 launch sceario.launch.py [chairs:=chairs.json] [convoy:=convoy.json] [board:=board.json]")
            sys.exit(0)
     print(f"Launching scenario from chair file {chair_file} and convoy {convoy_file} and board {board_file}")
     try:
