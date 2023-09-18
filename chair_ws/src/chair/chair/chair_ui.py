@@ -5,6 +5,7 @@
 import sys
 import rclpy
 import math
+from rclpy import qos
 from std_msgs.msg import String, Float32
 from geometry_msgs.msg import Twist
 from chair_interface.srv import EStop
@@ -49,7 +50,7 @@ class RobotControlGUI(QMainWindow):
 
         self._publisher = self._node.create_publisher(Twist, f'/{self._chair}/commanded_vel', 1)
         self._node.create_subscription(String, f'/{self._chair}/chair_status', self._chair_status_callback, 1)
-        self._node.create_subscription(Float32, f'/{self._chair}/target_status', self._set_connection, 1)
+        self._node.create_subscription(Float32, f'/{self._chair}/target_status', self._set_connection, qos.qos_profile_sensor_data)
 
         client = self._node.create_client(EStop, f'/{self._chair}/estop')
         while not client.wait_for_service(timeout_sec=1.0):
@@ -227,32 +228,21 @@ class RobotControlGUI(QMainWindow):
         self._future = self._EStop_cli.call_async(self._EStop_req) # ignoring the future
 
     def _set_connection(self, msg):
-        self._no_connection_led.setPixmap(self._black_led)
-        self._weak_connection_1.setPixmap(self._black_led)
-        self._weak_connection_2.setPixmap(self._black_led)
-        self._good_connection_1.setPixmap(self._black_led)
-        self._good_connection_2.setPixmap(self._black_led)
-        if msg.data < 0.2:
-            self._no_connection_led.setPixmap(self._red_led)
-        elif msg.data >= 0.2 and msg.data < 0.4:
-            self._no_connection_led.setPixmap(self._red_led)
-            self._weak_connection_1.setPixmap(self._orange_led)
-        elif msg.data >= 0.4 and msg.data < 0.6:
-            self._no_connection_led.setPixmap(self._red_led)
-            self._weak_connection_1.setPixmap(self._orange_led)
-            self._weak_connection_2.setPixmap(self._orange_led)
-        elif msg.data >= 0.6 and msg.data < 0.8:
-            self._no_connection_led.setPixmap(self._red_led)
-            self._weak_connection_1.setPixmap(self._orange_led)
-            self._weak_connection_2.setPixmap(self._orange_led)
-            self._good_connection_1.setPixmap(self._green_led)
-        elif msg.data >= 0.8:
-            self._no_connection_led.setPixmap(self._red_led)
-            self._weak_connection_1.setPixmap(self._orange_led)
-            self._weak_connection_2.setPixmap(self._orange_led)
-            self._good_connection_1.setPixmap(self._green_led)
-            self._good_connection_2.setPixmap(self._green_led)
-        else:
+        leds = [self._no_connection_led, self._weak_connection_1, self._weak_connection_2, self._good_connection_1, self._good_connection_2]
+        thresholds = [0.0, 0.2, 0.4, 0.6, 0.8]
+        
+        for i in range(len(leds)):
+            if msg.data >= thresholds[i]:
+                leds[i].setPixmap(self._red_led)
+                if (i >= 1) and (i < 3):
+                    leds[i].setPixmap(self._orange_led)
+                if i >= 3:
+                    leds[i].setPixmap(self._green_led)
+            else:
+                leds[i].setPixmap(self._black_led)
+                break
+        
+        if msg.data < thresholds[0]:
             self._node.get_logger().info(f'{self._node.get_name()} got no connection message {msg}')
 
     def move_robot(self, direction):
