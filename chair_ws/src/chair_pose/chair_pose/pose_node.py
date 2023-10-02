@@ -5,6 +5,7 @@ import cv2
 import datetime
 import numpy as np
 import pandas as pd
+import math
 from rclpy.node import Node
 from ultralytics import YOLO
 from cv_bridge import CvBridge
@@ -86,38 +87,61 @@ class YOLO_Node(Node):
         full = results.orig_shape[1] / 2
         diff = (full - mid) /   full
         height = (box[3] - box[1]) /  results.orig_shape[0]
-        self.get_logger().info(f'{self.get_name()} from -1..+1 {diff} height {height}')
+        # self.get_logger().info(f'{self.get_name()} from -1..+1 {diff} height {height}')
         
 
         if results.keypoints:
             keypoints = self.parse_keypoints(results)
-            
-            self.get_logger().info(f'{self.get_name()} got {len(keypoints)}')
-            for i in range(len(keypoints)):
-                self.get_logger().info(f'{self.get_name()} got keypoint {YOLO_Node._BODY_PARTS[keypoints[i][0]]}')
-                if keypoints[i][0] == 9:
-                    self._move_flag = True
-                    self.get_logger().info(f'Left Wrist Found: {self._move_flag}')
-                    move = Twist()
-                    move.linear.x = 0.0
-                    move.angular.y = 0.0
-                    self._chair_publisher.publish(move)
-                
-                if keypoints[i][0] == 10:
-                    self._move_flag = True
-                    self.get_logger().info(f'Right Wrist Found: {self._move_flag}')
-                    move = Twist()
-                    move.linear.x = 0.5
-                    move.angular.y = 0.5
-                    self._chair_publisher.publish(move)
-
-            # Visualize results on frame
             if len(keypoints) > 0:
+                self.get_logger().info(f'{self.get_name()} got {len(keypoints)}')
+                shoulders = self._find_shoulder_width(keypoints)
+                torso = self._find_torso_length(keypoints)
+                self.get_logger().info(f'Shoulder Distance = {shoulders}, Torso Length = {torso}')
+                for i in range(len(keypoints)):
+                    self.get_logger().info(f'{self.get_name()} got keypoint {YOLO_Node._BODY_PARTS[keypoints[i][0]]}')
+                    if keypoints[i][0] == 9:
+                        self._move_flag = True
+                        # self.get_logger().info(f'Left Wrist Found: {self._move_flag}')
+                        move = Twist()
+                        move.linear.x = 0.0
+                        move.angular.y = 0.0
+                        self._chair_publisher.publish(move)
+                    
+                    if keypoints[i][0] == 10:
+                        self._move_flag = True
+                        # self.get_logger().info(f'Right Wrist Found: {self._move_flag}')
+                        move = Twist()
+                        move.linear.x = 0.5
+                        move.angular.y = 0.5
+                        self._chair_publisher.publish(move)
+
+                # Visualize results on frame        
                 annotated_frame = results[0].plot()
     
                 cv2.imshow('Results', annotated_frame)
                 cv2.waitKey(3)
-
+    
+    def _find_shoulder_width(self, keypoints):
+        try:
+            left_shoulder_point = [keypoints[5][1], keypoints[5][2]]
+            right_shoulder_point = [keypoints[6][1], keypoints[6][2]]
+            difference = math.dist(left_shoulder_point, right_shoulder_point)
+            return difference
+        except:
+            self.get_logger().info(f'Shoulders not found')
+    
+    def _find_torso_length(self, keypoints):
+        try:
+            if (keypoints[5] and keypoints[11] is not None) or (keypoints[6] and keypoints[12] is not None):
+                left_shoulder_point = [keypoints[5][1], keypoints[5][2]]
+                left_hip_point = [keypoints[11][1], keypoints[11][2]]
+                right_shoulder_point = [keypoints[6][1], keypoints[6][2]]
+                right_hip_point = [keypoints[12][1], keypoints[12][2]]
+                difference = math.dist(left_shoulder_point, left_hip_point)
+                self.get_logger().info(f'Shoulder to Torso = {difference}')
+        except:
+            self.get_logger().info(f'Keypoints not found!')
+       
 def main(args=None):
     rclpy.init(args=args)
     node = YOLO_Node()
