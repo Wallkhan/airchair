@@ -20,8 +20,11 @@ class OpenCVCamera(Node):
 
         try:
             self._camera =  cv2.VideoCapture(video_channel, cv2.CAP_V4L2)
+            self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            self.get_logger().info(f'{self.get_name()} capture size is {self._camera.get(cv2.CAP_PROP_FRAME_WIDTH)}x{self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT)}')
         except Exception as e:
-            self.get_logger().error(f'{self.get_name()} Unable to open camera {video_channel}')
+            self.get_logger().error(f'{self.get_name()} Unable to open camera {video_channel} {e}')
             sys.exit(1)
 
         self._bridge = CvBridge()
