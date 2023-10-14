@@ -14,6 +14,7 @@ def generate_launch_description():
     chair_file = 'chairs.json'
     convoy_file = 'convoy.json'
     board_file = 'board.json'
+    control = 'manual'
     for arg in sys.argv: # there must be a better way...
         if arg.startswith('chairs:='):
            print(arg.split('chairs:=', 1)[1])
@@ -23,10 +24,16 @@ def generate_launch_description():
         elif arg.startswith('board:='):
             board_file = arg.split('board:=', 1)[1]
             print(f"board file is {board_file}")
+        elif arg.startswith('control:='):
+            control = arg.split('control:=', 1)[1]
+            if ['manual', 'leader'].count(control) != 1:
+                print(f'control type of {control} not known, using manual')
+                control = 'manual'
+            print(f"control type is {control}")
         elif ':=' in arg:
-           print(f"Unknown argument in {arg}. Usage ros2 launch sceario.launch.py [chairs:=chairs.json] [convoy:=convoy.json] [board:=board.json]")
+           print(f"Unknown argument in {arg}. Usage ros2 launch sceario.launch.py [chairs:=chairs.json] [convoy:=convoy.json] [board:=board.json] [control:=[manual|leader]")
            sys.exit(0)
-    print(f"Launching scenario from chair file {chair_file} and convoy {convoy_file} and board {board_file}")
+    print(f"Launching scenario from chair file {chair_file}, convoy {convoy_file}, board {board_file} with {control} control")
     try:
         chairs = json.load(open(chair_file, 'r'))
     except Exception as e:
@@ -110,6 +117,7 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{'chair-name': chair}])
             )
+
         if i > 0: # not for first chair
             print(f"Processing chair {i}")
             following = chair_list[i-1]
@@ -143,4 +151,25 @@ def generate_launch_description():
                     output='screen',
                     parameters=[{'chair_name': chair_list[i]}])
                 )
+
+
+    if control == 'leader':
+        print(f'Adding leader controller')
+        nodelist.append(
+            Node(
+                namespace = chair_list[0],
+                package = 'chair_pose',
+                executable = 'camera',
+                name = 'camera',
+                output='screen')
+            )
+        nodelist.append(
+            Node(
+                namespace = chair_list[0],
+                package = 'chair_pose',
+                executable = 'pose_node',
+                name = 'pose_node',
+                output='screen',
+                parameters=[{'chair-name': chair_list[0]}])
+            )
     return LaunchDescription(nodelist)

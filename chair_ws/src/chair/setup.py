@@ -6,7 +6,7 @@ package_name = 'chair'
 
 setup(
     name=package_name,
-    version='3.0.0',
+    version='3.0.1',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
@@ -33,6 +33,7 @@ setup(
             'aruco_board_detect = chair.aruco_board_detect:main',
             'chair_ui = chair.chair_ui:main',
             'chair_follower = chair.chair_follower:main',
+            'leader_ui = chair.leader_ui:main',
         ],
     },
 )
