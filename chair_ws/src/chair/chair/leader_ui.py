@@ -5,13 +5,14 @@
 import sys
 import rclpy
 import math
+import json
 from rclpy import qos
 from std_msgs.msg import String, Float32
 from geometry_msgs.msg import Twist
 from chair_interface.srv import EStop
 from chair_interface.srv import Engage
 from ament_index_python.packages import get_package_share_directory
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLineEdit, QLabel, QGridLayout, QStyle
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLineEdit, QLabel, QGridLayout, QStyle, QComboBox
 from PyQt5.QtGui import QPixmap, QPalette, QColor, QIcon
 from PyQt5.QtCore import Qt, QTimer, QSize
 
@@ -44,31 +45,53 @@ class RobotControlGUI(QMainWindow):
         self._diag_down_left_icon = QIcon(QPixmap(f"{home}/down-left-100.png"))
         self._diag_down_right_icon = QIcon(QPixmap(f"{home}/down-right-100.png"))
 
-        self._node.declare_parameter('chair-name', "chair_a")
-        self._chair = self._node.get_parameter('chair-name').get_parameter_value().string_value
-        self._node.get_logger().info(f'{self._node.get_name()} We are controlling chair {self._chair}')
+        self._node.declare_parameter('convoy_description', "convoy.json")
+        convoy_description = self._node.get_parameter('convoy_description').get_parameter_value().string_value
+        self.convoy_description = self._load_json(convoy_description)['chairs']
+        self._controlled_chair = self.convoy_description[0]
 
-        self._publisher = self._node.create_publisher(Twist, f'/{self._chair}/commanded_vel', 1)
-        self._node.create_subscription(String, f'/{self._chair}/chair_status', self._chair_status_callback, 1)
-        self._node.create_subscription(Float32, f'/{self._chair}/target_status', self._set_connection, qos.qos_profile_sensor_data)
+        # for every chair, 
+        self._publisher = {}
+        self._estop =  {}
+        self._engage = {}
+        self._node.get_logger().info(f'{self._node.get_name()} all chairs {self.convoy_description}')
+        for chair in self.convoy_description:
+            self._node.get_logger().info(f'{self._node.get_name()} Creating links for chair {chair}')
+            self._publisher[chair] = self._node.create_publisher(Twist, f'/{chair}/commanded_vel', 1)
+            self._node.create_subscription(String, f'/{chair}/chair_status', self._generate_status_callback(chair), 1)
 
-        client = self._node.create_client(EStop, f'/{self._chair}/estop')
-        while not client.wait_for_service(timeout_sec=1.0):
-            self._node.get_logger().info(f'{self._node.get_name()} Waiting for /{self._chair}/estop')
-        self._EStop_req = EStop.Request()
-        self._EStop_cli = client
+            self._node.create_subscription(Float32, f'/{chair}/target_status', self._generate_connection_callback(chair), 1)
 
-        client = self._node.create_client(Engage, f'/{self._chair}/engage')
-        while not client.wait_for_service(timeout_sec=1.0):
-            self._node.get_logger().info(f'{self._node.get_name()} Waiting for /{self._chair}/engage')
-        self._Engage_req = Engage.Request()
-        self._Engage_cli = client
+
+            client = self._node.create_client(EStop, f'/{chair}/estop')
+            while not client.wait_for_service(timeout_sec=1.0):
+                self._node.get_logger().info(f'{self._node.get_name()} Waiting for /{chair}/estop')
+            self._estop[chair] = client
+
+            client = self._node.create_client(Engage, f'/{chair}/engage')
+            while not client.wait_for_service(timeout_sec=1.0):
+                self._node.get_logger().info(f'{self._node.get_name()} Waiting for /{chair}/engage')
+            self._engage[chair] = client
+            self._node.get_logger().info(f'{self._node.get_name()} Creating links for chair {chair} done')
 
         self.init_ui()
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._timerCallback)
         self._timer.start(100)
+
+    def _generate_status_callback(self, chair_name):
+        return lambda msg : self._chair_status_callback(msg, chair_name)
+
+    def _generate_connection_callback(self, chair_name):
+        return lambda msg : self._chair_connection_callback(msg, chair_name)
+
+    def _load_json(self, file):
+        try:
+            return json.load(open(file, 'r'))
+        except Exception as e:
+            self._node.get_logger().info(f'{self._node.get_name()} unable to load/parse json file {file} {e}')
+            return None
 
     def _timerCallback(self):
         try:
@@ -77,71 +100,71 @@ class RobotControlGUI(QMainWindow):
             print(f'rclpy spin_once fails (likely rclpy closed down) Exception {e}') 
             sys.exit()
 
-    def _chair_status_callback(self, msg):  # NB self is a QMainWindow
-        self._estop_led.setPixmap(self._black_led)
-        self._manual_led.setPixmap(self._black_led)
-        self._engaged_led.setPixmap(self._black_led)
-        if msg.data == 'E-stop':
-            self._estop_led.setPixmap(self._red_led)
-        elif msg.data == 'Manual':
-            self._manual_led.setPixmap(self._red_led)
-        elif msg.data == 'Engaged':
-            self._engaged_led.setPixmap(self._red_led)
-        else:
-            self._node.get_logger().info(f'{self._node.get_name()} got a message {msg}')
+    def _chair_status_callback(self, msg, chair):  
+        """Display chair status"""
+        self._modes[chair]['E-stop'].setPixmap(self._black_led)
+        self._modes[chair]['Manual'].setPixmap(self._black_led)
+        self._modes[chair]['Engaged'].setPixmap(self._black_led)
+        try:
+            self._modes[chair][msg.data].setPixmap(self._red_led)
+        except Exception as e:
+            self._node.get_logger().info(f'{self._node.get_name()} chair {chair} got an unknown status {msg}')
+
+    def _selectChair(self, i):
+        self._controlled_chair = self.convoy_description[i]
+        self._node.get_logger().info(f'{self._node.get_name()} Now selecting chair {i} {self._controlled_chair}')
 
     def init_ui(self):
-        self.setWindowTitle(f'{self._chair}')
+        self.setWindowTitle(f'Operator')
         self.setGeometry(100, 100, 300, 300)
         self.setStyleSheet("background-color: white;")
         layout = QVBoxLayout()
 
-        estop = QVBoxLayout()
-        estop.addWidget(QLabel("Chair Mode"), alignment=Qt.AlignmentFlag.AlignHCenter)
-        estop1 = QGridLayout()
-
-        self._estop_led = QLabel()
-        self._estop_led.setPixmap(self._black_led)
-        estop1.addWidget(self._estop_led, 0, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self._manual_led = QLabel()
-        self._manual_led.setPixmap(self._black_led)
-        estop1.addWidget(self._manual_led, 0, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self._engaged_led = QLabel()
-        self._engaged_led.setPixmap(self._black_led)
-        estop1.addWidget(self._engaged_led, 0, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
-        estop1.addWidget(QLabel("EStop"), 1, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
-        estop1.addWidget(QLabel("Manual"), 1, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        estop1.addWidget(QLabel("Engaged"), 1, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
-        estop.addLayout(estop1)
-        layout.addLayout(estop)
-        layout.addWidget(QLabel(""), alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(QLabel("Convoy Status"), alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._strength = {}
+        self._modes = {}
+        for chair in self.convoy_description:
+            tmp = QHBoxLayout()
+            tmp.addWidget(QLabel(chair))
+            strength = QGridLayout()
+            self._strength[chair] = [None] * 5
+            for i in range(5):
+                self._strength[chair][i] = QLabel()
+                self._strength[chair][i].setPixmap(self._black_led)
+                strength.addWidget(self._strength[chair][i], 0, i, alignment=Qt.AlignmentFlag.AlignHCenter)
+            tmp.addLayout(strength)
 
-        connection = QHBoxLayout()
-        connection.addWidget(QLabel("Connection strength"), alignment=Qt.AlignmentFlag.AlignHCenter)
-        connection_1 = QGridLayout()
-        self._no_connection_led = QLabel()
-        self._no_connection_led.setPixmap(self._black_led)
-        self._weak_connection_1 = QLabel()
-        self._weak_connection_1.setPixmap(self._black_led)
-        self._weak_connection_2 = QLabel()
-        self._weak_connection_2.setPixmap(self._black_led)
-        self._good_connection_1 = QLabel()
-        self._good_connection_1.setPixmap(self._black_led)
-        self._good_connection_2 = QLabel()
-        self._good_connection_2.setPixmap(self._black_led)
-        connection_1.addWidget(self._no_connection_led, 0, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
-        connection_1.addWidget(self._weak_connection_1, 0, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        connection_1.addWidget(self._weak_connection_2, 0, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
-        connection_1.addWidget(self._good_connection_1, 0, 3, alignment=Qt.AlignmentFlag.AlignHCenter)
-        connection_1.addWidget(self._good_connection_2, 0, 4, alignment=Qt.AlignmentFlag.AlignHCenter)
-        connection.addLayout(connection_1)
-        layout.addLayout(connection)
+            mode = QGridLayout()
+            self._modes[chair] = {}
+            mode.addWidget(QLabel(" STP "), 0, 0)
+            self._modes[chair]['E-stop'] = QLabel()
+            self._modes[chair]['E-stop'].setPixmap(self._black_led)
+            mode.addWidget(self._modes[chair]['E-stop'], 0, 1)
+            mode.addWidget(QLabel(" MAN "), 0, 2)
+            self._modes[chair]['Manual'] = QLabel()
+            self._modes[chair]['Manual'].setPixmap(self._black_led)
+            mode.addWidget(self._modes[chair]['Manual'], 0, 3)
+            mode.addWidget(QLabel(" ENG "), 0, 4)
+            self._modes[chair]['Engaged'] = QLabel()
+            self._modes[chair]['Engaged'].setPixmap(self._black_led)
+            mode.addWidget(self._modes[chair]['Engaged'], 0, 5)
+            
+            tmp.addLayout(mode)
+            layout.addLayout(tmp)
+        layout.addWidget(QLabel(""), alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(QLabel("Chair Control"), alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._cb = QComboBox()
+        for chair in self.convoy_description:
+            self._cb.addItem(chair)
+        self._cb.currentIndexChanged.connect(self._selectChair)
+        layout.addWidget(self._cb)
+        layout.addWidget(QLabel(""), alignment=Qt.AlignmentFlag.AlignHCenter)
+
         followButton = QPushButton("Follow")
         layout.addWidget(followButton, alignment=Qt.AlignmentFlag.AlignHCenter)
         followButton.clicked.connect(self._requestFollow)
-
         layout.addWidget(QLabel(""), alignment=Qt.AlignmentFlag.AlignHCenter)
+
         layout.addWidget(QLabel("Manual Control"), alignment=Qt.AlignmentFlag.AlignHCenter)
         buttons = QVBoxLayout()
         resetEStop = QPushButton("Enable")
@@ -210,40 +233,36 @@ class RobotControlGUI(QMainWindow):
 #        self.setFixedSize(self.size())
 
     def _requestFollow(self):
-        self._node.get_logger().info(f'{self._node.get_name()} requesting to follow ')
-        self._EStop_req = Engage.Request()
-        self._EStop_req.engage = True
-        self._future = self._Engage_cli.call_async(self._Engage_req) # ignoring the future
+        req = Engage.Request()
+        req.engage = True
+        self._future = self._engage[self._controlled_chair].call_async(req) # ignoring the future
 
     def _resetEStop(self):
-        self._node.get_logger().info(f'{self._node.get_name()} resetting eStop')
-        self._EStop_req = EStop.Request()
-        self._EStop_req.estop = False
-        self._future = self._EStop_cli.call_async(self._EStop_req) # ignoring the future
+        req = EStop.Request()
+        req.estop = False
+        self._future = self._estop[self._controlled_chair].call_async(req) # ignoring the future
 
     def _engageEStop(self):
-        self._node.get_logger().info(f'{self._node.get_name()} engagin eStop')
-        self._EStop_req = EStop.Request()
-        self._EStop_req.estop = True
-        self._future = self._EStop_cli.call_async(self._EStop_req) # ignoring the future
+        req = EStop.Request()
+        req.estop = True
+        self._future = self._estop[self._controlled_chair].call_async(req) # ignoring the future
 
-    def _set_connection(self, msg):
-        leds = [self._no_connection_led, self._weak_connection_1, self._weak_connection_2, self._good_connection_1, self._good_connection_2]
+    def _chair_connection_callback(self, msg, chair):
         thresholds = [0.0, 0.2, 0.4, 0.6, 0.8]
         
-        for i in range(len(leds)):
+        for i in range(5):
             if msg.data >= thresholds[i]:
-                leds[i].setPixmap(self._red_led)
+                self._strength[chair][i].setPixmap(self._red_led)
                 if (i >= 1) and (i < 3):
-                    leds[i].setPixmap(self._orange_led)
+                    self._strength[chair][i].setPixmap(self._orange_led)
                 if i >= 3:
-                    leds[i].setPixmap(self._green_led)
+                    self._strength[chair][i].setPixmap(self._green_led)
             else:
-                leds[i].setPixmap(self._black_led)
+                self._strength[chair][i].setPixmap(self._black_led)
                 break
         
         if msg.data < thresholds[0]:
-            self._node.get_logger().info(f'{self._node.get_name()} got no connection message {msg}')
+            self._node.get_logger().info(f'{self._node.get_name()} got bad connection strength chair {chair} {msg}')
 
     def move_robot(self, direction):
         self._node.get_logger().info(f'{self._node.get_name()} direction is {direction}')
@@ -270,8 +289,8 @@ class RobotControlGUI(QMainWindow):
             twist_msg.linear.x = 0.0
             twist_msg.angular.z = 0.0
             
-        self._publisher.publish(twist_msg)
-        self._node.get_logger().info(f'{self._node.get_name()} Published {direction} command to {self._chair}/commanded_vel')
+        self._publisher[self._controlled_chair].publish(twist_msg)
+        self._node.get_logger().info(f'{self._node.get_name()} Published {direction} command to {self._controlled_chair}/commanded_vel')
 
 def main():
     rclpy.init()
