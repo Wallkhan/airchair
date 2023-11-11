@@ -251,15 +251,14 @@ class RobotControlGUI(QMainWindow):
         thresholds = [0.0, 0.2, 0.4, 0.6, 0.8]
         
         for i in range(5):
+            self._strength[chair][i].setPixmap(self._black_led)
+        for i in range(5):
             if msg.data >= thresholds[i]:
                 self._strength[chair][i].setPixmap(self._red_led)
                 if (i >= 1) and (i < 3):
                     self._strength[chair][i].setPixmap(self._orange_led)
                 if i >= 3:
                     self._strength[chair][i].setPixmap(self._green_led)
-            else:
-                self._strength[chair][i].setPixmap(self._black_led)
-                break
         
         if msg.data < thresholds[0]:
             self._node.get_logger().info(f'{self._node.get_name()} got bad connection strength chair {chair} {msg}')

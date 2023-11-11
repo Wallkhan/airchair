@@ -172,4 +172,13 @@ def generate_launch_description():
                 output='screen',
                 parameters=[{'chair-name': chair_list[0]}])
             )
+        nodelist.append(
+            Node(
+                namespace = 'convoy',
+                package = 'chair',
+                executable = 'leader_ui',
+                output = 'screen',
+                parameters=[{'convoy_description': convoy_file}])
+            )
+ 
     return LaunchDescription(nodelist)
